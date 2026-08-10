@@ -40,7 +40,9 @@
   .st-sub{text-align:center; color:var(--sub); font-size:18px; margin-top:12px;}
   .st-bar{width:56px; height:5px; background:var(--red); border-radius:3px; margin:18px auto 0;}
   .mark{background:linear-gradient(180deg, transparent 62%, #ffd6d6 62%); padding:0 2px;}
-  .cta-btn{display:inline-flex; align-items:center; gap:10px; background:linear-gradient(135deg,#d40000,#ff4d4d); color:#fff; font-weight:900; font-size:19px; padding:17px 34px; border-radius:999px; text-decoration:none; box-shadow:0 10px 26px rgba(203,0,0,.32); transition:transform .12s, box-shadow .12s;}
+  .cta-btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; background:linear-gradient(135deg,#d40000,#ff4d4d); color:#fff; font-weight:900; font-size:19px; padding:17px 34px; border-radius:999px; text-decoration:none; box-shadow:0 10px 26px rgba(203,0,0,.32); transition:transform .12s, box-shadow .12s;}
+  /* シンプルな吹き出し（メッセージ）アイコン。フォントサイズに連動して自動リサイズ */
+  .ic-line{width:1em; height:1em; display:inline-block; vertical-align:-0.125em; flex-shrink:0;}
   .cta-btn:hover{transform:translateY(-2px); box-shadow:0 14px 32px rgba(203,0,0,.4);}
   .cta-btn.ghost{background:#fff; color:var(--red); border:2px solid var(--red); box-shadow:none;}
   .micro{font-size:15px; color:var(--sub); margin-top:10px;}
@@ -50,7 +52,7 @@
   .hdr-tel{font-weight:900; color:var(--green); font-size:18px; text-decoration:none; white-space:nowrap;}
   /* ヘッダー専用LINEボタン：無料相談ボタン（header-consult）と形・輪郭・影の強さを統一。色のみLINEグリーン */
   header .header-line{
-    display:inline-flex; align-items:center; justify-content:center;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
     background:#06C755;
     border-radius:11px;
     box-shadow:0 2px 6px rgba(6,199,85,.15);
@@ -511,7 +513,7 @@
     <div class="hdr-actions">
       <a href="tel:0120932397" class="hdr-tel">☎ 0120-932-397</a>
       <!-- 要URL設定：LINE公式アカウントのURLが決まるまでは、問い合わせセクション（#cta）へのアンカーリンクにしています -->
-      <a href="#cta" class="header-line line">LINEで相談</a>
+      <a href="#cta" class="header-line line"><svg class="ic-line" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><path d="M10 2C5.58 2 2 4.91 2 8.5c0 2.02 1.15 3.83 2.95 5.02-.1.78-.42 1.9-1.25 2.98a.4.4 0 00.42.63c1.6-.46 2.8-1.16 3.6-1.72.71.14 1.46.22 2.28.22 4.42 0 8-2.91 8-6.5S14.42 2 10 2z" fill="currentColor"/></svg>LINEで相談</a>
       <a href="#cta" class="header-consult">無料相談</a>
     </div>
   </div>
@@ -560,7 +562,7 @@
       <a href="#plans" class="cta-btn ghost">プランを見る</a>
     </div>
     <!-- 要URL設定：LINE公式アカウントのURLが決まるまでは #cta（問い合わせセクション）への仮リンク -->
-    <div class="hero-urgent">お急ぎの方は <b><a href="tel:0120932397">☎ 0120-932-397</a></b> ／ <b><a href="#cta">📱 LINEで今すぐ相談</a></b></div>
+    <div class="hero-urgent">お急ぎの方は <b><a href="tel:0120932397">☎ 0120-932-397</a></b> ／ <b><a href="#cta"><svg class="ic-line" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><path d="M10 2C5.58 2 2 4.91 2 8.5c0 2.02 1.15 3.83 2.95 5.02-.1.78-.42 1.9-1.25 2.98a.4.4 0 00.42.63c1.6-.46 2.8-1.16 3.6-1.72.71.14 1.46.22 2.28.22 4.42 0 8-2.91 8-6.5S14.42 2 10 2z" fill="currentColor"/></svg> LINEで今すぐ相談</a></b></div>
     <div class="hmeta">
       <div><b>相続相談 2,000件超</b><br class="pc-br"><br class="sp-br">いざという時まで一生おつきあい</div>
       <div><b>スタッフ30名・女性が多数活躍</b><br class="pc-br"><br class="sp-br">相談しやすい、あたたかな事務所です</div>
@@ -788,7 +790,7 @@
   <div class="wrap">
     <div class="mct">どのプランが合うか、まずは一度お話ししませんか？<small>相談無料・オンライン相談にも対応しています。</small></div>
     <!-- 要URL設定：LINE公式アカウントのURL確定まで #cta（問い合わせセクション）への仮リンク -->
-    <div class="mctb"><a class="cta-btn" href="#cta">無料で相談する →</a><a class="cta-btn line" href="#cta">📱 LINE</a></div>
+    <div class="mctb"><a class="cta-btn" href="#cta">無料で相談する →</a><a class="cta-btn line" href="#cta"><svg class="ic-line" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><path d="M10 2C5.58 2 2 4.91 2 8.5c0 2.02 1.15 3.83 2.95 5.02-.1.78-.42 1.9-1.25 2.98a.4.4 0 00.42.63c1.6-.46 2.8-1.16 3.6-1.72.71.14 1.46.22 2.28.22 4.42 0 8-2.91 8-6.5S14.42 2 10 2z" fill="currentColor"/></svg>LINE</a></div>
   </div>
 </div>
 
@@ -864,7 +866,7 @@
   <div class="wrap">
     <div class="mct">「うちの場合は？」を、そのまま聞いてみませんか。<small>今の状況をお聞きするだけでも大丈夫です</small></div>
     <!-- 要URL設定：LINE公式アカウントのURL確定まで #cta（問い合わせセクション）への仮リンク -->
-    <div class="mctb"><a class="cta-btn" href="#cta">無料で相談する →</a><a class="cta-btn line" href="#cta">📱 LINE</a></div>
+    <div class="mctb"><a class="cta-btn" href="#cta">無料で相談する →</a><a class="cta-btn line" href="#cta"><svg class="ic-line" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><path d="M10 2C5.58 2 2 4.91 2 8.5c0 2.02 1.15 3.83 2.95 5.02-.1.78-.42 1.9-1.25 2.98a.4.4 0 00.42.63c1.6-.46 2.8-1.16 3.6-1.72.71.14 1.46.22 2.28.22 4.42 0 8-2.91 8-6.5S14.42 2 10 2z" fill="currentColor"/></svg>LINE</a></div>
   </div>
 </div>
 
@@ -982,7 +984,7 @@
     <p>売り込みはしません。今の状況をお聞きして、合う形があるかだけ、一緒に確かめましょう。</p>
     <!-- 要URL設定：LINE公式アカウントのURLが決まり次第、下記2箇所を差し替えてください -->
     <div class="cta-multi">
-      <a href="#cta" class="cta-btn line">📱 LINEで相談</a>
+      <a href="#cta" class="cta-btn line"><svg class="ic-line" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><path d="M10 2C5.58 2 2 4.91 2 8.5c0 2.02 1.15 3.83 2.95 5.02-.1.78-.42 1.9-1.25 2.98a.4.4 0 00.42.63c1.6-.46 2.8-1.16 3.6-1.72.71.14 1.46.22 2.28.22 4.42 0 8-2.91 8-6.5S14.42 2 10 2z" fill="currentColor"/></svg>LINEで相談</a>
       <a href="tel:0120932397" class="cta-btn tel">☎ 0120-932-397</a>
     </div>
     <!-- 要バックエンド接続：送信先（メール／CRM等）が未設定のため onsubmit で送信を無効化しています -->
@@ -1003,7 +1005,7 @@
       <textarea placeholder="例：丸投げしたいが、放置されないか不安。 など"></textarea>
       <!-- 要URL設定：プライバシーポリシーページのURL -->
       <label class="consent"><input type="checkbox"> <span><a href="#">プライバシーポリシー</a>に同意のうえ送信します。いただいた情報はご相談対応の目的にのみ使用し、無断で第三者に提供しません。</span></label>
-      <button type="submit" class="cta-btn">無料相談を申し込む →</button>
+      <button type="submit" class="cta-btn">無料相談を申し込む</button>
       <div class="fnote">※ 現在Web受付フォームは準備中です。お急ぎの場合はお電話またはLINEにてご連絡ください。</div>
     </form>
   </div>
@@ -1033,7 +1035,7 @@
 
 <!-- 要URL設定：LINE公式アカウントのURL -->
 <div class="floatcta">
-  <a class="fline" href="#cta"><span class="ic">📱</span><small>LINE</small></a>
+  <a class="fline" href="#cta"><span class="ic"><svg class="ic-line" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><path d="M10 2C5.58 2 2 4.91 2 8.5c0 2.02 1.15 3.83 2.95 5.02-.1.78-.42 1.9-1.25 2.98a.4.4 0 00.42.63c1.6-.46 2.8-1.16 3.6-1.72.71.14 1.46.22 2.28.22 4.42 0 8-2.91 8-6.5S14.42 2 10 2z" fill="currentColor"/></svg></span><small>LINE</small></a>
   <a class="ftel" href="tel:0120932397"><span class="ic">☎</span><small>電話</small></a>
 </div>
 

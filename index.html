@@ -987,9 +987,10 @@
       <a href="#cta" class="cta-btn line"><svg class="ic-line" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><path d="M10 2C5.58 2 2 4.91 2 8.5c0 2.02 1.15 3.83 2.95 5.02-.1.78-.42 1.9-1.25 2.98a.4.4 0 00.42.63c1.6-.46 2.8-1.16 3.6-1.72.71.14 1.46.22 2.28.22 4.42 0 8-2.91 8-6.5S14.42 2 10 2z" fill="currentColor"/></svg>LINEで相談</a>
       <a href="tel:0120932397" class="cta-btn tel">☎ 0120-932-397</a>
     </div>
-    <!-- 送信先: nakagakiken@tkcnf.or.jp （mailto:方式のため、送信者側のメールソフトが起動し、そこで送信操作を行う仕組みです。
-         サーバー経由の自動送信ではありません。フォーム自動送信をご希望の場合は、別途フォーム送信サービスの導入が必要です。 -->
-    <form class="formcard" action="mailto:nakagakiken@tkcnf.or.jp?subject=LPからの無料相談お申し込み" method="post" enctype="text/plain">
+    <!-- 送信先: Formspree（https://formspree.io/f/mvkpkbrr）経由で nakagakiken@tkcnf.or.jp へHTTPSで送信されます。
+         受信先メールアドレスの変更・確認はFormspreeの管理画面で行ってください。 -->
+    <form class="formcard" action="https://formspree.io/f/mvkpkbrr" method="POST">
+      <input type="hidden" name="_subject" value="LPからの無料相談お申し込み">
       <label>お名前</label>
       <input type="text" name="お名前" placeholder="山田 太郎">
       <label>ご連絡先（メール or 電話）</label>
@@ -1007,7 +1008,7 @@
       <!-- 要URL設定：プライバシーポリシーページのURL -->
       <label class="consent"><input type="checkbox"> <span><a href="#">プライバシーポリシー</a>に同意のうえ送信します。いただいた情報はご相談対応の目的にのみ使用し、無断で第三者に提供しません。</span></label>
       <button type="submit" class="cta-btn">無料相談を申し込む</button>
-      <div class="fnote">※ 送信ボタンを押すと、お使いのメールソフトが起動します。<br class="pc-br">画面が開かない場合は、お手数ですがお電話またはLINEにてご連絡ください。</div>
+      <div class="fnote">※ 送信いただいた内容は、担当者が確認のうえ折り返しご連絡いたします。</div>
     </form>
   </div>
 </section>

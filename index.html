@@ -342,7 +342,14 @@
   .formcard input,.formcard textarea,.formcard select{width:100%; border:1.5px solid var(--line); border-radius:10px; padding:13px 15px; font-size:17.5px; font-family:inherit; color:var(--ink);}
   .formcard textarea{min-height:88px; resize:vertical;}
   .formcard .cta-btn{width:100%; justify-content:center; margin-top:22px; border:none; cursor:pointer;}
+  .formcard .cta-btn:disabled{opacity:.65; cursor:not-allowed;}
   .formcard .fnote{font-size:15px; color:var(--sub); text-align:center; margin-top:12px;}
+  .form-error{margin-top:16px; font-size:14.5px; color:var(--red); background:#fff3f3; border:1px solid #e6b3b3; border-radius:10px; padding:13px 16px; text-align:center; line-height:1.8;}
+  /* 送信完了メッセージ（.formcard と同じ白カード内に表示） */
+  .form-success{text-align:center;}
+  .form-success .ic-ok{width:52px; height:52px; color:var(--red); margin:0 auto 16px; display:block;}
+  .form-success h3{color:var(--red); font-size:22px; font-weight:900; margin-bottom:10px;}
+  .form-success p{color:var(--sub); font-size:16px; line-height:1.8;}
 
   footer{background:#100c08; color:#93897c; font-size:15.5px; padding:30px 0;}
   footer .wrap{display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
@@ -462,6 +469,10 @@
     .formcard label{font-size:14px; margin:12px 0 5px;}
     .formcard input,.formcard textarea,.formcard select{font-size:16px; padding:11px 13px;}
     .formcard .fnote{font-size:13px;}
+    .form-error{font-size:13.5px; padding:12px 14px;}
+    .form-success .ic-ok{width:44px; height:44px;}
+    .form-success h3{font-size:19px;}
+    .form-success p{font-size:14.5px;}
 
     /* FAQ・その他文字サイズ */
     .faq summary{font-size:16px; padding:16px 0;}
@@ -988,8 +999,9 @@
       <a href="tel:0120932397" class="cta-btn tel">☎ 0120-932-397</a>
     </div>
     <!-- 送信先: Formspree（https://formspree.io/f/mvkpkbrr）経由で nakagakiken@tkcnf.or.jp へHTTPSで送信されます。
-         受信先メールアドレスの変更・確認はFormspreeの管理画面で行ってください。 -->
-    <form class="formcard" action="https://formspree.io/f/mvkpkbrr" method="POST">
+         受信先メールアドレスの変更・確認はFormspreeの管理画面で行ってください。
+         JS（fetch）でAJAX送信し、Formspree標準の遷移先ページへは移動せず、LP内に完了メッセージを表示します。 -->
+    <form class="formcard" id="contactForm" action="https://formspree.io/f/mvkpkbrr" method="POST">
       <input type="hidden" name="_subject" value="LPからの無料相談お申し込み">
       <label>お名前</label>
       <input type="text" name="お名前" placeholder="山田 太郎">
@@ -1008,8 +1020,17 @@
       <!-- 要URL設定：プライバシーポリシーページのURL -->
       <label class="consent"><input type="checkbox"> <span><a href="#">プライバシーポリシー</a>に同意のうえ送信します。いただいた情報はご相談対応の目的にのみ使用し、無断で第三者に提供しません。</span></label>
       <button type="submit" class="cta-btn">無料相談を申し込む</button>
+      <div class="form-error" id="formError" role="alert" hidden>送信できませんでした。<br class="pc-br">お手数ですが、時間をおいて再度お試しください。</div>
       <div class="fnote">※ 送信いただいた内容は、担当者が確認のうえ折り返しご連絡いたします。</div>
     </form>
+    <div class="formcard form-success" id="formSuccess" role="status" hidden>
+      <svg class="ic-ok" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
+        <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M15 24.5l6 6 12-13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>お申し込みありがとうございます。</h3>
+      <p>無料相談のお申し込みを受け付けました。<br class="pc-br">内容を確認のうえ、担当者よりご連絡いたします。</p>
+    </div>
   </div>
 </section>
 
@@ -1075,6 +1096,41 @@
     }});},{threshold:0.35});
     pio.observe(pf);
   }
+})();
+</script>
+
+<script>
+/* 無料相談フォーム：Formspreeへ fetch(AJAX) で送信し、標準の遷移先ページへは移動せずLP内に完了メッセージを表示する */
+(function(){
+  var form = document.getElementById('contactForm');
+  if(!form) return;
+  var btn = form.querySelector('button[type="submit"]');
+  var btnDefaultText = btn ? btn.textContent : '';
+  var errorBox = document.getElementById('formError');
+  var successBox = document.getElementById('formSuccess');
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(btn && btn.disabled) return; // 二重送信防止
+    if(errorBox) errorBox.hidden = true;
+    if(btn){ btn.disabled = true; btn.textContent = '送信中…'; }
+
+    fetch(form.action, {
+      method: 'POST',
+      body: new FormData(form),
+      headers: { 'Accept': 'application/json' }
+    }).then(function(res){
+      if(res.ok){
+        form.hidden = true;
+        if(successBox) successBox.hidden = false;
+      } else {
+        throw new Error('submit failed: ' + res.status);
+      }
+    }).catch(function(){
+      if(errorBox) errorBox.hidden = false;
+      if(btn){ btn.disabled = false; btn.textContent = btnDefaultText; }
+    });
+  });
 })();
 </script>
 

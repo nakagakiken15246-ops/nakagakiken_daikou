@@ -69,6 +69,25 @@
   var ASSET_CAT_MAP = {};
   ASSET_CATEGORIES.forEach(function (c) { ASSET_CAT_MAP[c.key] = c; });
 
+  var REFERRAL_OPTIONS = [
+    { value: "flyer_free", label: "無料相談会折込チラシ", hasDetail: true, detailPlaceholder: "配布月（例：8月）" },
+    { value: "flyer_other", label: "その他のチラシ", hasDetail: true, detailPlaceholder: "チラシ名等" },
+    { value: "seminar", label: "セミナー", hasDetail: true, detailPlaceholder: "開催日（例：2026/8/1）" },
+    { value: "hp", label: "ホームページ", hasDetail: false },
+    { value: "walkin", label: "飛び込み", hasDetail: false },
+    { value: "referral", label: "ご紹介", hasDetail: true, detailPlaceholder: "紹介者名等" },
+    { value: "other", label: "その他", hasDetail: true, detailPlaceholder: "内容" }
+  ];
+  var REFERRAL_MAP = {};
+  REFERRAL_OPTIONS.forEach(function (r) { REFERRAL_MAP[r.value] = r; });
+
+  var CONSULTATION_TYPES = [
+    "相続税申告", "相続手続き", "相続税試算", "贈与税", "生前贈与", "遺言",
+    "不動産名変", "不動産売買", "家族信託", "相続人間紛争", "確定申告"
+  ];
+
+  var LIVING_TOGETHER_LABELS = { unknown: "未確認", yes: "同居している", no: "同居していない" };
+
   /* ---------------------------------------------------------
      ユーティリティ
   --------------------------------------------------------- */
@@ -148,6 +167,9 @@
       updatedAt: now,
       title: "",
       staff: "",
+      contact: { name: "", kana: "", address: "", phone: "", contactTime: "", relation: "", livingTogether: "unknown" },
+      referral: { type: "", dmConsent: "", details: {} },
+      consultationTypes: [],
       decedent: { name: "", kana: "", birth: "", death: "", address: "", honseki: "", job: "", note: "" },
       interview: {
         date: "", place: "", attendeeStaff: "", attendeeFamily: "",
@@ -380,9 +402,18 @@
   /* ===========================================================
      作業画面：描画
   =========================================================== */
+  // 旧バージョンで作成された案件データに新項目を補完する
+  function ensureCaseDefaults(c) {
+    if (!c.contact) c.contact = { name: "", kana: "", address: "", phone: "", contactTime: "", relation: "", livingTogether: "unknown" };
+    if (!c.referral) c.referral = { type: "", dmConsent: "", details: {} };
+    if (!c.referral.details) c.referral.details = {};
+    if (!c.consultationTypes) c.consultationTypes = [];
+  }
+
   function renderWorkspace() {
     var c = getCase();
     if (!c) return showCaseList();
+    ensureCaseDefaults(c);
     document.getElementById("case-name-display").textContent = c.title || c.decedent.name || "（無題の案件）";
     renderBasicTab(c);
     renderInterviewTab(c);
@@ -405,6 +436,16 @@
     bindField("f-title", function () { return c.title; }, function (v) { c.title = v; document.getElementById("case-name-display").textContent = v || c.decedent.name || "（無題の案件）"; });
     bindField("f-staff", function () { return c.staff; }, function (v) { c.staff = v; });
 
+    bindField("c-name", function () { return c.contact.name; }, function (v) { c.contact.name = v; });
+    bindField("c-kana", function () { return c.contact.kana; }, function (v) { c.contact.kana = v; });
+    bindField("c-address", function () { return c.contact.address; }, function (v) { c.contact.address = v; });
+    bindField("c-phone", function () { return c.contact.phone; }, function (v) { c.contact.phone = v; });
+    bindField("c-contact-time", function () { return c.contact.contactTime; }, function (v) { c.contact.contactTime = v; });
+    bindField("c-relation", function () { return c.contact.relation; }, function (v) { c.contact.relation = v; });
+    var livingSel = document.getElementById("c-living-together");
+    livingSel.value = c.contact.livingTogether || "unknown";
+    livingSel.onchange = function () { c.contact.livingTogether = livingSel.value; touch(c); persistDebounced(); };
+
     bindField("d-name", function () { return c.decedent.name; }, function (v) { c.decedent.name = v; if (!c.title) document.getElementById("case-name-display").textContent = v; });
     bindField("d-kana", function () { return c.decedent.kana; }, function (v) { c.decedent.kana = v; });
     bindField("d-birth", function () { return c.decedent.birth; }, function (v) { c.decedent.birth = v; });
@@ -414,6 +455,53 @@
     bindField("d-job", function () { return c.decedent.job; }, function (v) { c.decedent.job = v; });
     bindField("d-note", function () { return c.decedent.note; }, function (v) { c.decedent.note = v; });
     updateDeadlineBox(c);
+
+    renderReferralChoices(c);
+    renderConsultationTypeChecks(c);
+  }
+
+  function renderReferralChoices(c) {
+    var wrap = document.getElementById("referral-choices");
+    wrap.innerHTML = "";
+    REFERRAL_OPTIONS.forEach(function (opt) {
+      var radio = el("input", { type: "radio", name: "referral-type" });
+      radio.checked = c.referral.type === opt.value;
+      radio.onchange = function () { c.referral.type = opt.value; touch(c); persistDebounced(); };
+      var label = el("label", { class: "radio-label" }, [radio, document.createTextNode(opt.label)]);
+      var row = el("div", { class: "choice-row" }, [label]);
+      if (opt.hasDetail) {
+        var detailInput = el("input", { type: "text", class: "choice-detail", placeholder: opt.detailPlaceholder });
+        detailInput.value = c.referral.details[opt.value] || "";
+        detailInput.oninput = function () { c.referral.details[opt.value] = detailInput.value; touch(c); persistDebounced(); };
+        row.appendChild(detailInput);
+      }
+      wrap.appendChild(row);
+    });
+
+    var yes = document.getElementById("dm-consent-yes");
+    var no = document.getElementById("dm-consent-no");
+    yes.checked = c.referral.dmConsent === "yes";
+    no.checked = c.referral.dmConsent === "no";
+    yes.onchange = function () { c.referral.dmConsent = "yes"; touch(c); persistDebounced(); };
+    no.onchange = function () { c.referral.dmConsent = "no"; touch(c); persistDebounced(); };
+  }
+
+  function renderConsultationTypeChecks(c) {
+    var wrap = document.getElementById("consultation-type-checks");
+    wrap.innerHTML = "";
+    CONSULTATION_TYPES.forEach(function (t) {
+      var cb = el("input", { type: "checkbox" });
+      cb.checked = c.consultationTypes.indexOf(t) >= 0;
+      cb.onchange = function () {
+        if (cb.checked) {
+          if (c.consultationTypes.indexOf(t) < 0) c.consultationTypes.push(t);
+        } else {
+          c.consultationTypes = c.consultationTypes.filter(function (x) { return x !== t; });
+        }
+        touch(c); persistDebounced();
+      };
+      wrap.appendChild(el("label", { class: "check-label" }, [cb, document.createTextNode(t)]));
+    });
   }
 
   function updateDeadlineBox(c) {
@@ -831,6 +919,7 @@
   /* ---------- 概要・印刷 ---------- */
   function renderPrintArea() {
     var c = getCase(); if (!c) return;
+    ensureCaseDefaults(c);
     var result = computeShares(c.people);
     var deductionCount = computeDeductionCount(c.people);
     var deductionAmount = 30000000 + 6000000 * deductionCount;
@@ -851,7 +940,26 @@
     html += "<div><span class='k'>面談場所</span>" + escapeHtml(c.interview.place || "") + "</div>";
     html += "</div>";
 
-    html += "<h2>被相続人情報</h2><div class='kv-grid'>";
+    html += "<h2>相談者（来所者）情報</h2><div class='kv-grid'>";
+    var ct = c.contact;
+    html += "<div><span class='k'>氏名</span>" + escapeHtml(ct.name) + "（" + escapeHtml(ct.kana) + "）</div>";
+    html += "<div><span class='k'>対象者との続柄</span>" + escapeHtml(ct.relation) + "</div>";
+    html += "<div><span class='k'>住所</span>" + escapeHtml(ct.address) + "</div>";
+    html += "<div><span class='k'>連絡先</span>" + escapeHtml(ct.phone) + "</div>";
+    html += "<div><span class='k'>連絡のつきやすい時間帯</span>" + escapeHtml(ct.contactTime) + "</div>";
+    html += "<div><span class='k'>対象者とのご同居</span>" + LIVING_TOGETHER_LABELS[ct.livingTogether || "unknown"] + "</div>";
+    html += "</div>";
+
+    html += "<h2>相談経路・相談内容</h2><div class='kv-grid'>";
+    var refDef = REFERRAL_MAP[c.referral.type];
+    var refLabel = refDef ? refDef.label : "未選択";
+    if (refDef && refDef.hasDetail && c.referral.details[refDef.value]) refLabel += "（" + c.referral.details[refDef.value] + "）";
+    html += "<div><span class='k'>相談経路</span>" + escapeHtml(refLabel) + "</div>";
+    html += "<div><span class='k'>DM送付</span>" + (c.referral.dmConsent === "yes" ? "希望する" : c.referral.dmConsent === "no" ? "希望しない" : "未確認") + "</div>";
+    html += "<div style='grid-column:1/-1;'><span class='k'>相談内容</span>" + (c.consultationTypes.length ? escapeHtml(c.consultationTypes.join("、")) : "未選択") + "</div>";
+    html += "</div>";
+
+    html += "<h2>対象者情報（被相続人・申告等が必要な方）</h2><div class='kv-grid'>";
     var d = c.decedent;
     html += "<div><span class='k'>氏名</span>" + escapeHtml(d.name) + "（" + escapeHtml(d.kana) + "）</div>";
     html += "<div><span class='k'>生年月日</span>" + escapeHtml(formatDateJ(d.birth)) + "</div>";

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="相続面談ツール">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1f3a5f">
+<title>相続税申告 初回面談支援ツール</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231f3a5f'/%3E%3Ctext x='50' y='66' font-size='54' text-anchor='middle' fill='white' font-family='sans-serif'%3E相%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== ヘッダー ===== -->
+  <header id="app-header">
+    <div class="header-row">
+      <button id="btn-back-list" class="icon-btn" hidden title="案件一覧に戻る">‹ 一覧</button>
+      <div class="header-title">
+        <strong>相続税申告 初回面談支援ツール</strong>
+        <span id="case-name-display" class="case-name-display"></span>
+      </div>
+      <div class="header-status">
+        <span id="save-status" class="save-status">未保存</span>
+      </div>
+    </div>
+    <nav id="tab-nav" class="tab-nav" hidden>
+      <button class="tab-btn" data-tab="basic">基本情報</button>
+      <button class="tab-btn" data-tab="interview">面談記録</button>
+      <button class="tab-btn" data-tab="tree">相関図・相続人</button>
+      <button class="tab-btn" data-tab="assets">財産目録</button>
+      <button class="tab-btn" data-tab="summary">概要・印刷</button>
+    </nav>
+  </header>
+
+  <main id="app-main">
+
+    <!-- ===== 案件一覧 画面 ===== -->
+    <section id="screen-caselist" class="screen">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>案件一覧</h2>
+          <div class="panel-actions">
+            <label class="btn btn-secondary file-btn">
+              JSON読込
+              <input type="file" id="input-import-json" accept="application/json" hidden>
+            </label>
+            <button id="btn-new-case" class="btn btn-primary">＋ 新規案件</button>
+          </div>
+        </div>
+        <p class="hint-text">お客様との面談ごとに案件を作成します。データは<strong>この端末内(ブラウザ)にのみ</strong>保存されます。他の端末と共有する場合は「JSON書き出し」で保存したファイルを共有・読込してください。</p>
+        <div id="case-list" class="case-list"></div>
+      </div>
+    </section>
+
+    <!-- ===== 作業画面 ===== -->
+    <section id="screen-workspace" class="screen" hidden>
+
+      <!-- --- 基本情報 --- -->
+      <div id="tab-basic" class="tab-pane">
+        <div class="panel">
+          <h2>案件情報</h2>
+          <div class="form-grid">
+            <label>案件名(顧客名)<input type="text" id="f-title" placeholder="例）田中太郎様 相続"></label>
+            <label>担当者(事務所側)<input type="text" id="f-staff" placeholder="担当税理士・担当者名"></label>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>被相続人情報</h2>
+          <div class="form-grid">
+            <label>氏名<input type="text" id="d-name"></label>
+            <label>フリガナ<input type="text" id="d-kana"></label>
+            <label>生年月日<input type="date" id="d-birth"></label>
+            <label>死亡日(相続開始日)<input type="date" id="d-death"></label>
+            <label>死亡時の住所<input type="text" id="d-address"></label>
+            <label>本籍地<input type="text" id="d-honseki"></label>
+            <label>職業・略歴<input type="text" id="d-job"></label>
+          </div>
+          <div class="deadline-box" id="deadline-box" hidden>
+            <div>相続税申告期限（死亡日の翌日から10か月）</div>
+            <div class="deadline-date" id="deadline-date"></div>
+          </div>
+          <label class="full-width">備考<textarea id="d-note" rows="2"></textarea></label>
+        </div>
+      </div>
+
+      <!-- --- 面談記録 --- -->
+      <div id="tab-interview" class="tab-pane">
+        <div class="panel">
+          <h2>面談概要</h2>
+          <div class="form-grid">
+            <label>面談日<input type="date" id="i-date"></label>
+            <label>面談場所<input type="text" id="i-place" placeholder="事務所／ご自宅／オンライン 等"></label>
+            <label>対応者(事務所側)<input type="text" id="i-attendee-staff"></label>
+            <label>同席者(お客様側)<input type="text" id="i-attendee-family" placeholder="続柄も記載"></label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>ヒアリング項目</h2>
+          <div id="hearing-items" class="hearing-list"></div>
+        </div>
+
+        <div class="panel">
+          <h2>必要書類チェックリスト</h2>
+          <table class="doc-table">
+            <thead><tr><th>書類名</th><th>状況</th><th>メモ</th><th></th></tr></thead>
+            <tbody id="doc-checklist-body"></tbody>
+          </table>
+          <button id="btn-add-doc" class="btn btn-secondary btn-small">＋ 書類を追加</button>
+        </div>
+
+        <div class="panel">
+          <h2>面談メモ・特記事項</h2>
+          <textarea id="i-memo" rows="6" placeholder="ご要望、ご家族関係、懸念事項、次回までの宿題 等を自由に記載"></textarea>
+          <div class="form-grid" style="margin-top:12px;">
+            <label>次回打合せ予定<input type="date" id="i-next-date"></label>
+            <label>次回打合せ内容<input type="text" id="i-next-memo"></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- --- 相関図・相続人 --- -->
+      <div id="tab-tree" class="tab-pane">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>相続関係図</h2>
+            <button id="btn-add-person" class="btn btn-primary btn-small">＋ 人物を追加</button>
+          </div>
+          <p class="hint-text">続柄を選ぶと自動で世代ごとに配置されます。図をタップすると編集できます。</p>
+          <div id="tree-wrap" class="tree-wrap">
+            <svg id="tree-svg" class="tree-svg"></svg>
+            <div id="tree-rows" class="tree-rows"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>法定相続人・法定相続分（目安）</h2>
+          <div id="heir-summary" class="heir-summary"></div>
+          <table class="heir-table">
+            <thead><tr><th>氏名</th><th>続柄</th><th>状況</th><th>法定相続分</th></tr></thead>
+            <tbody id="heir-table-body"></tbody>
+          </table>
+          <p class="disclaimer">※ 法定相続人・相続分・基礎控除額の自動計算は面談時の目安です。代襲相続、養子の数の制限、半血兄弟姉妹の相続分などの詳細判定は、必ず税理士が戸籍等の確認の上で個別に判断してください。</p>
+        </div>
+      </div>
+
+      <!-- --- 財産目録 --- -->
+      <div id="tab-assets" class="tab-pane">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>財産目録（概算）</h2>
+            <div class="panel-actions">
+              <button id="btn-add-asset" class="btn btn-primary btn-small">＋ 項目を追加</button>
+            </div>
+          </div>
+          <p class="hint-text">面談時点でお客様から伺った概算額を入力します。正式な評価額は後日の資料確認により確定します。</p>
+          <div id="asset-groups"></div>
+          <div class="asset-total-box">
+            <div class="asset-total-row"><span>積極財産 合計（概算）</span><strong id="asset-total-plus">0</strong></div>
+            <div class="asset-total-row"><span>債務・葬式費用 合計（概算）</span><strong id="asset-total-minus">0</strong></div>
+            <div class="asset-total-row grand"><span>差引 純資産額（概算）</span><strong id="asset-total-net">0</strong></div>
+            <div class="asset-total-row"><span>遺産に係る基礎控除額（目安）</span><strong id="asset-basic-deduction">0</strong></div>
+            <div class="asset-total-row" id="asset-taxable-row"><span>基礎控除超過の可能性</span><strong id="asset-taxable-flag">-</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- --- 概要・印刷 --- -->
+      <div id="tab-summary" class="tab-pane">
+        <div class="panel no-print">
+          <h2>出力</h2>
+          <div class="panel-actions wrap">
+            <button id="btn-print" class="btn btn-primary">🖨 画面を印刷／PDF保存</button>
+            <button id="btn-export-json" class="btn btn-secondary">⇩ 案件データをJSON書き出し</button>
+            <button id="btn-export-assets-xls" class="btn btn-secondary">⇩ 財産目録をExcel(.xls)書き出し</button>
+            <button id="btn-export-heirs-xls" class="btn btn-secondary">⇩ 相続人一覧をExcel(.xls)書き出し</button>
+          </div>
+        </div>
+        <div id="print-area" class="print-area"></div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ===== 人物 編集モーダル ===== -->
+<div id="modal-person" class="modal" hidden>
+  <div class="modal-card">
+    <h3 id="person-modal-title">人物を追加</h3>
+    <div class="form-grid">
+      <label>氏名<input type="text" id="p-name"></label>
+      <label>フリガナ<input type="text" id="p-kana"></label>
+      <label>続柄<select id="p-relationship"></select></label>
+      <label>生年月日<input type="date" id="p-birth"></label>
+      <label>状況
+        <select id="p-status">
+          <option value="alive">存命</option>
+          <option value="deceased">死亡（相続開始前）</option>
+          <option value="renounced">相続放棄</option>
+          <option value="disqualified">相続欠格・廃除</option>
+        </select>
+      </label>
+      <label>連絡先<input type="text" id="p-contact"></label>
+    </div>
+    <label class="full-width">備考<textarea id="p-note" rows="2"></textarea></label>
+    <p class="hint-text small">「孫」「甥・姪」は、その代の子・兄弟姉妹が死亡または欠格・廃除の場合のみ追加してください（相続放棄では代襲しません）。</p>
+    <div class="modal-actions">
+      <button id="btn-delete-person" class="btn btn-danger" hidden>削除</button>
+      <div class="spacer"></div>
+      <button id="btn-cancel-person" class="btn btn-secondary">キャンセル</button>
+      <button id="btn-save-person" class="btn btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 財産 編集モーダル ===== -->
+<div id="modal-asset" class="modal" hidden>
+  <div class="modal-card">
+    <h3 id="asset-modal-title">財産・債務を追加</h3>
+    <div class="form-grid">
+      <label>分類<select id="a-category"></select></label>
+      <label>種類・銘柄・所在地等<input type="text" id="a-description"></label>
+      <label>数量・面積等<input type="text" id="a-quantity"></label>
+      <label>概算評価額（円）<input type="number" id="a-value" inputmode="numeric" step="1"></label>
+    </div>
+    <label class="full-width">備考<textarea id="a-note" rows="2"></textarea></label>
+    <div class="modal-actions">
+      <button id="btn-delete-asset" class="btn btn-danger" hidden>削除</button>
+      <div class="spacer"></div>
+      <button id="btn-cancel-asset" class="btn btn-secondary">キャンセル</button>
+      <button id="btn-save-asset" class="btn btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

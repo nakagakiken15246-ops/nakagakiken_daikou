@@ -39,20 +39,117 @@
     { key: "will", q: "遺言書の有無", options: ["未確認", "無し", "有り（自筆証書）", "有り（公正証書）", "有り（その他）"] },
     { key: "seisanka", q: "相続時精算課税制度の利用", options: ["未確認", "無し", "有り"] },
     { key: "gift", q: "生前贈与（直近数年）の有無", options: ["未確認", "無し", "有り"] },
-    { key: "insurance", q: "死亡保険金・死亡退職金の有無", options: ["未確認", "無し", "有り"] },
-    { key: "realestate", q: "不動産（自宅・収益物件・農地等）の有無", options: ["未確認", "無し", "有り"] },
     { key: "business", q: "事業承継・自社株の有無", options: ["未確認", "無し", "有り"] },
     { key: "relationship", q: "相続人間の関係性・留意点", options: ["良好", "要注意", "不明"] },
     { key: "policy", q: "遺産分割の方針・ご希望", options: ["未定", "おおよそ決まっている", "決まっている"] }
   ];
 
-  var DEFAULT_DOCS = [
-    "戸籍謄本一式（出生～死亡）", "住民票（除票）・戸籍の附票", "印鑑証明書（相続人全員）",
-    "固定資産評価証明書", "名寄帳", "預金残高証明書・取引履歴", "証券残高証明書",
-    "生命保険金支払通知書・保険証券", "債務・借入金の残高証明書", "葬式費用の領収書",
-    "過去の贈与関連資料", "遺言書・遺産分割協議書（あれば）"
-  ];
   var DOC_STATUS_OPTIONS = ["未依頼", "依頼済", "取得済", "対象外"];
+  var EXISTENCE_OPTIONS = [
+    { value: "unknown", label: "未確認" },
+    { value: "yes", label: "有" },
+    { value: "no", label: "無" }
+  ];
+
+  // 必要資料チェックリストのマスタ（事務所の紙の「初回ご相談シート」を基に作成）
+  var DOC_CATEGORIES = [
+    { key: "ininjo", label: "委任状", hasExistence: false, items: [
+      "汎用委任状", "法定相続情報委任状", "農地台帳委任状", "森林簿林班図委任状", "相続税法49条の開示請求の委任状"
+    ] },
+    { key: "decedent", label: "被相続人（亡くなられた方）", hasExistence: false, items: [
+      "出生から死亡までの連続した戸籍", "戸籍附票", "住民票除票", "死亡診断書", "遺言書", "遺産分割協議書",
+      { name: "相続人相関図", hint: "相関図・相続人タブから作成できます（当事務所作成）" },
+      { name: "法定相続情報一覧図", hint: "作成者：弊所／お客様／他士業のいずれかをメモ欄に記載" },
+      { name: "おいたち", hint: "当事務所作成" }
+    ] },
+    { key: "heirs", label: "相続人", hasExistence: false, items: [
+      "代襲がある場合、被代襲者の出生から死亡までの戸籍",
+      { name: "現在の戸籍", hint: "対象者をメモ欄に記載" },
+      "住民票",
+      { name: "印鑑登録証明書", hint: "基本1人2部取付（銀行提出用・相続登記用）" },
+      { name: "マイナンバーが分かる資料（いずれか一点）", hint: "①マイナンバーカード裏表コピー ②通知カード＋顔写真付き身分証明書裏表コピー ③通知カード紛失時はマイナンバー記載の住民票＋身分証明書裏表コピー" },
+      { name: "電子申告の利用者識別番号(16桁)が分かる資料", hint: "取得済みなら分かる資料のコピー。不明・未取得の場合は弊所にて新規取得／上書き取得" },
+      "障害者手帳・療育手帳等のコピー（該当する相続人がいる場合）",
+      { name: "相続人のフリガナ・職業・連絡先（電話番号）", hint: "別紙にて聴取・取得" }
+    ] },
+    { key: "realestate", label: "不動産関連", hasExistence: true, items: [
+      { name: "土地家屋名寄帳", hint: "対象市区町村をメモ欄に記載" },
+      { name: "固定資産税課税明細書", hint: "対象年度をメモ欄に記載" },
+      "農地台帳",
+      { name: "現況写真", hint: "当事務所で撮影" },
+      "森林簿・林班図",
+      "定期借地権・賃貸借契約書"
+    ] },
+    { key: "securities", label: "有価証券", hasExistence: true, items: [
+      "証券会社・信託銀行の残高証明書",
+      "証券会社等の10年分の取引履歴",
+      "配当金支払通知書・ハガキ等の配当金のお知らせ",
+      { name: "相続人や孫名義になっている証券の有無", hint: "被相続人が管理していたものがないか確認" }
+    ] },
+    { key: "deposits", label: "預貯金関係", hasExistence: true, items: [
+      { name: "銀行の残高証明書", hint: "定期がある場合は利息計算書も。対象金融機関をメモ欄に記載" },
+      "銀行の取引履歴（5年・7年・10年）",
+      "信用金庫・農協への出資金の残高証明書",
+      { name: "被相続人名義の通帳すべて", hint: "解約まで行う場合はカードや出資証書等の現物も必要" },
+      "手元現金（メモ可）",
+      { name: "相続人や孫名義になっている通帳の有無", hint: "被相続人が管理していたものがないか確認" },
+      { name: "入出金検討表作成", hint: "当事務所作成" }
+    ] },
+    { key: "lifeinsurance", label: "生命保険契約", hint: "死亡給付・入院手術給付・年金保険・がん保険等一切を含む", hasExistence: true, items: [
+      "保険証券のコピーまたは契約内容のお知らせ（契約者・被保険者・受取人が分かるもの）",
+      "保険金・払戻金・解約金等の支払通知書・案内書",
+      "受け取った金額が分かる相続人の通帳のコピー",
+      { name: "解約返戻金相当額計算書", hint: "契約者が被相続人で被保険者が被相続人以外の契約がある場合" }
+    ] },
+    { key: "retirement", label: "退職金手当・弔慰金・給与等", hasExistence: true, items: [
+      "退職金源泉徴収票または支払調書",
+      "退職金手当・弔慰金・給与等を受け取った際の関連資料一式",
+      "受け取った相続人の通帳のコピー"
+    ] },
+    { key: "incometax", label: "所得税準確定申告", hasExistence: true, items: [
+      "亡くなられた年の源泉徴収票（公的年金・市町村年金・企業年金他）",
+      "年金収入以外の収入が分かる通帳のコピーや支払いの内訳書",
+      "直近過去3年分の所得税申告書控え一式（元帳等）"
+    ] },
+    { key: "otherassets", label: "その他財産", hasExistence: true, items: [
+      { name: "社会保険料・税金の還付金関連通知書", hint: "介護／後期高齢者医療／高額療養費／市県民税 等" },
+      "還付金を受け取った相続人の通帳のコピー",
+      { name: "被相続人名義の車両の車検証", hint: "購入時の契約書、売却時は売買契約書等も" },
+      { name: "解約返戻金のある損害保険（建更等）", hint: "解約返戻金相当額計算書・解約通知書" },
+      { name: "施設等入居関連書類", hint: "入居契約書・重要事項説明書・介護保険証か介護認定通知書コピー" },
+      { name: "施設退去時の精算計算書", hint: "敷金精算がある場合" },
+      { name: "ゴルフ会員権", hint: "会員券や保証金の証書" },
+      { name: "骨董品", hint: "購入時期・購入金額が分かる資料。なければ聴取。鑑定要否は要相談" },
+      { name: "カーポート", hint: "購入時期・購入金額が分かる資料。型番等分かれば現況写真の際に確認" },
+      { name: "ソーラーパネル", hint: "購入時期・購入金額が分かる契約書等。要相談" },
+      { name: "庭園", hint: "購入時期・購入金額・購入場所が分かる資料" }
+    ] },
+    { key: "debts", label: "債務", hasExistence: false, items: [
+      { name: "葬儀費用が分かる資料", hint: "領収書、または請求書や精算書等" },
+      { name: "寺院等へ払ったお布施の領収書", hint: "領収書がなければメモ可（支払者・寺院名・日付・金額）" },
+      { name: "初七日法要費用の内訳", hint: "お布施に含まれている場合、内訳が分かる資料があれば" },
+      { name: "社会保険料・税金の納付書・通知書", hint: "固定資産税／市町村県民税／社会保険料" },
+      { name: "公共料金等の支払領収書", hint: "電気／ガス／水道／電話／NHK／新聞／インターネット等" },
+      "病院・介護サービス利用費・介護用品レンタル等の未払い分の領収書",
+      "入居施設関係の未払い分の請求書・領収書",
+      "借入金・金銭消費貸借契約書"
+    ] }
+  ];
+  var DOC_CATEGORY_MAP = {};
+  DOC_CATEGORIES.forEach(function (c) { DOC_CATEGORY_MAP[c.key] = c; });
+
+  function buildDefaultDocChecklist() {
+    return DOC_CATEGORIES.map(function (cat) {
+      return {
+        key: cat.key,
+        existence: cat.hasExistence ? "unknown" : null,
+        items: cat.items.map(function (it) {
+          var def = typeof it === "string" ? { name: it } : it;
+          return { id: uid(), name: def.name, hint: def.hint || "", status: "未依頼", custody: false, returned: false, memo: "" };
+        })
+      };
+    });
+  }
 
   var ASSET_CATEGORIES = [
     { key: "land", label: "土地", sign: 1 },
@@ -174,9 +271,9 @@
       interview: {
         date: "", place: "", attendeeStaff: "", attendeeFamily: "",
         hearing: hearing,
-        memo: "", nextDate: "", nextMemo: "",
-        docs: DEFAULT_DOCS.map(function (name) { return { id: uid(), name: name, status: "未依頼", memo: "" }; })
+        memo: "", nextDate: "", nextMemo: ""
       },
+      docChecklist: buildDefaultDocChecklist(),
       people: [],
       assets: []
     };
@@ -348,7 +445,9 @@
     // 人物・書類・財産のIDも振り直す
     copy.people.forEach(function (p) { p.id = uid(); });
     copy.assets.forEach(function (a) { a.id = uid(); });
-    copy.interview.docs.forEach(function (d) { d.id = uid(); });
+    if (copy.docChecklist) {
+      copy.docChecklist.forEach(function (cat) { cat.items.forEach(function (item) { item.id = uid(); }); });
+    }
     state.cases.push(copy);
     saveCases(state.cases);
     renderCaseList();
@@ -408,6 +507,23 @@
     if (!c.referral) c.referral = { type: "", dmConsent: "", details: {} };
     if (!c.referral.details) c.referral.details = {};
     if (!c.consultationTypes) c.consultationTypes = [];
+    if (!c.docChecklist) {
+      c.docChecklist = buildDefaultDocChecklist();
+    } else {
+      // カテゴリ・項目マスタが更新された場合に備え、既存データを保ちつつ不足分のみ補完する
+      DOC_CATEGORIES.forEach(function (catDef) {
+        var cat = c.docChecklist.filter(function (x) { return x.key === catDef.key; })[0];
+        if (!cat) {
+          cat = { key: catDef.key, existence: catDef.hasExistence ? "unknown" : null, items: [] };
+          c.docChecklist.push(cat);
+        }
+        catDef.items.forEach(function (it) {
+          var def = typeof it === "string" ? { name: it } : it;
+          var exists = cat.items.some(function (x) { return x.name === def.name; });
+          if (!exists) cat.items.push({ id: uid(), name: def.name, hint: def.hint || "", status: "未依頼", custody: false, returned: false, memo: "" });
+        });
+      });
+    }
   }
 
   function renderWorkspace() {
@@ -419,6 +535,7 @@
     renderInterviewTab(c);
     renderTree(c);
     renderAssetsTab(c);
+    renderDocsTab(c);
   }
 
   /* ---------- 基本情報 ---------- */
@@ -543,38 +660,185 @@
       ]));
     });
 
-    renderDocChecklist(c);
-    document.getElementById("btn-add-doc").onclick = function () {
-      iv.docs.push({ id: uid(), name: "", status: "未依頼", memo: "" });
-      touch(c); persistDebounced();
-      renderDocChecklist(c);
-    };
   }
 
-  function renderDocChecklist(c) {
-    var body = document.getElementById("doc-checklist-body");
-    body.innerHTML = "";
-    c.interview.docs.forEach(function (doc) {
-      var nameInput = el("input", { type: "text", value: doc.name, placeholder: "書類名" });
-      nameInput.oninput = function () { doc.name = nameInput.value; touch(c); persistDebounced(); };
-      var statusSel = el("select", {});
-      DOC_STATUS_OPTIONS.forEach(function (o) { statusSel.appendChild(el("option", { value: o, text: o })); });
-      statusSel.value = doc.status;
-      statusSel.onchange = function () { doc.status = statusSel.value; touch(c); persistDebounced(); };
-      var memoInput = el("input", { type: "text", value: doc.memo, placeholder: "メモ" });
-      memoInput.oninput = function () { doc.memo = memoInput.value; touch(c); persistDebounced(); };
-      var delBtn = el("button", { class: "row-del", text: "×", title: "削除", onclick: function () {
-        c.interview.docs = c.interview.docs.filter(function (d) { return d.id !== doc.id; });
-        touch(c); persistDebounced(); renderDocChecklist(c);
-      } });
-      var tr = el("tr", {}, [
-        el("td", {}, [nameInput]),
-        el("td", {}, [statusSel]),
-        el("td", {}, [memoInput]),
-        el("td", {}, [delBtn])
+  /* ---------- 必要資料 ---------- */
+  function renderDocsTab(c) {
+    var wrap = document.getElementById("docs-categories");
+    wrap.innerHTML = "";
+
+    c.docChecklist.forEach(function (cat) {
+      var catDef = DOC_CATEGORY_MAP[cat.key];
+      if (!catDef) return;
+
+      var panel = el("div", { class: "panel" });
+      panel.appendChild(el("div", { class: "docs-category-header" }, [
+        el("h2", { text: catDef.label })
+      ]));
+      if (catDef.hint) panel.appendChild(el("p", { class: "hint-text", text: catDef.hint }));
+
+      if (catDef.hasExistence) {
+        var existRow = el("div", { class: "choice-row" }, [el("span", { class: "hint-text", text: "この財産・資料の有無：", style: "margin:0;" })]);
+        EXISTENCE_OPTIONS.forEach(function (opt) {
+          var radio = el("input", { type: "radio", name: "existence-" + cat.key });
+          radio.checked = (cat.existence || "unknown") === opt.value;
+          radio.onchange = function () { cat.existence = opt.value; touch(c); persistDebounced(); };
+          existRow.appendChild(el("label", { class: "radio-label" }, [radio, document.createTextNode(opt.label)]));
+        });
+        panel.appendChild(existRow);
+      }
+
+      var table = el("table", { class: "doc-table" }, [
+        el("thead", {}, [el("tr", {}, [
+          el("th", { text: "書類名" }), el("th", { text: "状況" }), el("th", { text: "原本預り" }), el("th", { text: "返却済" }), el("th", { text: "メモ" }), el("th", {})
+        ])])
       ]);
-      body.appendChild(tr);
+      var tbody = el("tbody", {});
+      cat.items.forEach(function (item) {
+        tbody.appendChild(buildDocItemRow(c, cat, item));
+      });
+      table.appendChild(tbody);
+      panel.appendChild(el("div", { class: "table-scroll" }, [table]));
+
+      panel.appendChild(el("button", { class: "asset-add-row", text: "＋ 項目を追加", onclick: function () {
+        cat.items.push({ id: uid(), name: "", hint: "", status: "未依頼", custody: false, returned: false, memo: "" });
+        touch(c); persistDebounced();
+        renderDocsTab(c);
+      } }));
+
+      wrap.appendChild(panel);
     });
+
+    renderDocsSummary(c);
+  }
+
+  function buildDocItemRow(c, cat, item) {
+    var nameCell;
+    if (item.hint) {
+      nameCell = el("td", {}, [
+        el("span", { class: "doc-item-name", text: item.name || "（未入力）" }),
+        el("span", { class: "doc-item-hint", text: item.hint })
+      ]);
+    } else {
+      var nameInput = el("input", { type: "text", value: item.name, placeholder: "書類名" });
+      nameInput.oninput = function () { item.name = nameInput.value; touch(c); persistDebounced(); };
+      nameCell = el("td", {}, [nameInput]);
+    }
+
+    var statusSel = el("select", {});
+    DOC_STATUS_OPTIONS.forEach(function (o) { statusSel.appendChild(el("option", { value: o, text: o })); });
+    statusSel.value = item.status;
+    statusSel.onchange = function () { item.status = statusSel.value; touch(c); persistDebounced(); };
+
+    var custodyCb = el("input", { type: "checkbox" });
+    custodyCb.checked = !!item.custody;
+    custodyCb.onchange = function () {
+      item.custody = custodyCb.checked;
+      if (!item.custody) item.returned = false;
+      touch(c); persistDebounced();
+      renderDocsTab(c);
+    };
+
+    var returnedCb = el("input", { type: "checkbox" });
+    returnedCb.checked = !!item.returned;
+    returnedCb.disabled = !item.custody;
+    returnedCb.onchange = function () { item.returned = returnedCb.checked; touch(c); persistDebounced(); };
+
+    var memoInput = el("input", { type: "text", value: item.memo, placeholder: "メモ" });
+    memoInput.oninput = function () { item.memo = memoInput.value; touch(c); persistDebounced(); };
+
+    var delBtn = el("button", { class: "row-del", text: "×", title: "削除", onclick: function () {
+      cat.items = cat.items.filter(function (x) { return x.id !== item.id; });
+      touch(c); persistDebounced();
+      renderDocsTab(c);
+    } });
+
+    return el("tr", {}, [
+      nameCell,
+      el("td", {}, [statusSel]),
+      el("td", {}, [custodyCb]),
+      el("td", {}, [returnedCb]),
+      el("td", {}, [memoInput]),
+      el("td", {}, [delBtn])
+    ]);
+  }
+
+  function collectCustodyItems(c) {
+    var out = [];
+    c.docChecklist.forEach(function (cat) {
+      var catDef = DOC_CATEGORY_MAP[cat.key];
+      cat.items.forEach(function (item) {
+        if (item.custody && !item.returned) {
+          out.push({ category: catDef ? catDef.label : cat.key, name: item.name || "（未入力）", memo: item.memo });
+        }
+      });
+    });
+    return out;
+  }
+
+  function renderDocsSummary(c) {
+    var wrap = document.getElementById("docs-summary");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    var custodyCount = collectCustodyItems(c).length;
+    var outstanding = 0, obtained = 0, na = 0;
+    c.docChecklist.forEach(function (cat) {
+      cat.items.forEach(function (item) {
+        if (item.status === "取得済") obtained++;
+        else if (item.status === "対象外") na++;
+        else outstanding++;
+      });
+    });
+    [
+      ["現在お預かり中の原本", custodyCount + " 件"],
+      ["取得済み", obtained + " 件"],
+      ["未取得（依頼前・依頼済）", outstanding + " 件"]
+    ].forEach(function (pair) {
+      wrap.appendChild(el("div", { class: "stat" }, [
+        el("div", { class: "stat-label", text: pair[0] }),
+        el("div", { class: "stat-value", text: pair[1] })
+      ]));
+    });
+  }
+
+  function buildCustodyReceiptHtml(c) {
+    var items = collectCustodyItems(c);
+    var today = new Date();
+    var todayStr = today.getFullYear() + "年" + (today.getMonth() + 1) + "月" + today.getDate() + "日";
+    var html = "";
+    html += "<h1>預り証</h1>";
+    html += "<div class='kv-grid'>";
+    html += "<div><span class='k'>お預かり日</span>" + todayStr + "</div>";
+    html += "<div><span class='k'>案件名</span>" + escapeHtml(c.title || "") + "</div>";
+    html += "<div><span class='k'>ご相談者様</span>" + escapeHtml(c.contact.name || "") + " 様</div>";
+    html += "<div><span class='k'>対象者様</span>" + escapeHtml(c.decedent.name || "") + "</div>";
+    html += "<div><span class='k'>担当者</span>" + escapeHtml(c.staff || "") + "</div>";
+    html += "</div>";
+    html += "<p style='margin-top:16px;'>下記の書類を原本にてお預かりいたしました。ご返却の際は本証をご確認のうえお渡しいたします。</p>";
+    html += "<table><thead><tr><th style='width:36px;'>No.</th><th>分類</th><th>書類名</th><th>メモ</th></tr></thead><tbody>";
+    if (items.length === 0) {
+      html += "<tr><td colspan='4'>現在お預かり中の書類はありません。</td></tr>";
+    } else {
+      items.forEach(function (it, idx) {
+        html += "<tr><td>" + (idx + 1) + "</td><td>" + escapeHtml(it.category) + "</td><td>" + escapeHtml(it.name) + "</td><td>" + escapeHtml(it.memo || "") + "</td></tr>";
+      });
+    }
+    html += "</tbody></table>";
+    html += "<div class='kv-grid' style='margin-top:36px;'>";
+    html += "<div><span class='k'>お預かり者（事務所側）</span>　　　　　　　　　印</div>";
+    html += "<div><span class='k'>お渡し者（お客様側）</span>　　　　　　　　　印</div>";
+    html += "</div>";
+    return html;
+  }
+
+  function printCustodyReceipt() {
+    var c = getCase(); if (!c) return;
+    var originTab = state.currentTab;
+    document.getElementById("print-area").innerHTML = buildCustodyReceiptHtml(c);
+    document.querySelectorAll(".tab-pane").forEach(function (p) { p.classList.remove("active"); });
+    document.getElementById("tab-summary").classList.add("active");
+    window.print();
+    switchTab(originTab);
   }
 
   /* ---------- 相関図・相続人 ---------- */
@@ -1011,11 +1275,28 @@
     });
     html += "</tbody></table>";
 
-    html += "<h2>必要書類チェックリスト</h2><table><thead><tr><th>書類名</th><th>状況</th><th>メモ</th></tr></thead><tbody>";
-    c.interview.docs.forEach(function (doc) {
-      html += "<tr><td>" + escapeHtml(doc.name) + "</td><td>" + escapeHtml(doc.status) + "</td><td>" + escapeHtml(doc.memo) + "</td></tr>";
+    html += "<h2>必要資料（財産の有無・未取得分）</h2>";
+    html += "<div class='kv-grid'>";
+    c.docChecklist.forEach(function (cat) {
+      var catDef = DOC_CATEGORY_MAP[cat.key];
+      if (!catDef || !catDef.hasExistence) return;
+      var exLabel = EXISTENCE_OPTIONS.filter(function (o) { return o.value === (cat.existence || "unknown"); })[0];
+      html += "<div><span class='k'>" + catDef.label + "</span>" + (exLabel ? exLabel.label : "未確認") + "</div>";
     });
+    html += "</div>";
+    html += "<table><thead><tr><th>分類</th><th>書類名</th><th>状況</th></tr></thead><tbody>";
+    var outstandingRows = [];
+    c.docChecklist.forEach(function (cat) {
+      var catDef = DOC_CATEGORY_MAP[cat.key];
+      cat.items.forEach(function (item) {
+        if (item.status === "未依頼" || item.status === "依頼済") {
+          outstandingRows.push("<tr><td>" + (catDef ? catDef.label : cat.key) + "</td><td>" + escapeHtml(item.name) + "</td><td>" + escapeHtml(item.status) + "</td></tr>");
+        }
+      });
+    });
+    html += outstandingRows.length ? outstandingRows.join("") : "<tr><td colspan='3'>未取得の資料はありません（対象外・取得済みのみ）。</td></tr>";
     html += "</tbody></table>";
+    html += "<p style='font-size:11px;color:#666;'>※ 必要資料チェックリストの全項目・原本お預かり状況は「必要資料」タブでご確認ください。</p>";
 
     html += "<h2>面談メモ・特記事項</h2><div class='memo-block'>" + escapeHtml(c.interview.memo || "（記載なし）") + "</div>";
     html += "<div class='kv-grid' style='margin-top:8px;'><div><span class='k'>次回打合せ予定</span>" + escapeHtml(formatDateJ(c.interview.nextDate)) + "</div><div><span class='k'>次回打合せ内容</span>" + escapeHtml(c.interview.nextMemo || "") + "</div></div>";
@@ -1119,6 +1400,7 @@
     document.getElementById("btn-delete-asset").onclick = deleteAssetModal;
 
     document.getElementById("btn-print").onclick = function () { renderPrintArea(); window.print(); };
+    document.getElementById("btn-print-custody").onclick = printCustodyReceipt;
     document.getElementById("btn-export-json").onclick = function () { var c = getCase(); if (c) exportCaseJSON(c); };
     document.getElementById("btn-export-assets-xls").onclick = exportAssetsXLS;
     document.getElementById("btn-export-heirs-xls").onclick = exportHeirsXLS;

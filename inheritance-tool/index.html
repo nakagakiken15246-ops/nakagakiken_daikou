@@ -32,6 +32,7 @@
       <button class="tab-btn" data-tab="interview">面談記録</button>
       <button class="tab-btn" data-tab="tree">相関図・相続人</button>
       <button class="tab-btn" data-tab="assets">財産目録</button>
+      <button class="tab-btn" data-tab="docs">必要資料</button>
       <button class="tab-btn" data-tab="summary">概要・印刷</button>
     </nav>
   </header>
@@ -140,15 +141,6 @@
         </div>
 
         <div class="panel">
-          <h2>必要書類チェックリスト</h2>
-          <table class="doc-table">
-            <thead><tr><th>書類名</th><th>状況</th><th>メモ</th><th></th></tr></thead>
-            <tbody id="doc-checklist-body"></tbody>
-          </table>
-          <button id="btn-add-doc" class="btn btn-secondary btn-small">＋ 書類を追加</button>
-        </div>
-
-        <div class="panel">
           <h2>面談メモ・特記事項</h2>
           <textarea id="i-memo" rows="6" placeholder="ご要望、ご家族関係、懸念事項、次回までの宿題 等を自由に記載"></textarea>
           <div class="form-grid" style="margin-top:12px;">
@@ -202,6 +194,19 @@
             <div class="asset-total-row" id="asset-taxable-row"><span>基礎控除超過の可能性</span><strong id="asset-taxable-flag">-</strong></div>
           </div>
         </div>
+      </div>
+
+      <!-- --- 必要資料 --- -->
+      <div id="tab-docs" class="tab-pane">
+        <div class="panel no-print">
+          <div class="panel-header">
+            <h2>必要資料チェックリスト</h2>
+            <button id="btn-print-custody" class="btn btn-primary btn-small">🖨 預り証を印刷／PDF保存</button>
+          </div>
+          <p class="hint-text">分類ごとに、その財産・資料の有無を確認し、書類の取得状況と原本のお預かり状況を記録します。「原本預り」にチェックした書類は、上部の「預り証を印刷」から一覧を出力できます。</p>
+          <div class="heir-summary" id="docs-summary"></div>
+        </div>
+        <div id="docs-categories"></div>
       </div>
 
       <!-- --- 概要・印刷 --- -->

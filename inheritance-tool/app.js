@@ -302,7 +302,8 @@
   var state = {
     cases: loadCases(),
     currentCaseId: null,
-    currentTab: "basic"
+    currentTab: "basic",
+    caseSearchQuery: ""
   };
 
   function getCase() {
@@ -425,12 +426,31 @@
   /* ===========================================================
      案件一覧
   =========================================================== */
+  function caseMatchesSearch(c, query) {
+    if (!query) return true;
+    var phone = c.contact && c.contact.phone;
+    var hay = [
+      c.title,
+      c.decedent && c.decedent.name, c.decedent && c.decedent.kana,
+      c.contact && c.contact.name, c.contact && c.contact.kana,
+      phone, phone && phone.replace(/[^0-9]/g, "") // ハイフン有無どちらでも検索できるよう数字のみ版も対象にする
+    ].filter(Boolean).join(" ").toLowerCase();
+    return hay.indexOf(query.toLowerCase()) >= 0;
+  }
+
   function renderCaseList() {
+    var searchInput = document.getElementById("case-search");
+    if (searchInput && document.activeElement !== searchInput) searchInput.value = state.caseSearchQuery || "";
     var wrap = document.getElementById("case-list");
     wrap.innerHTML = "";
-    var sorted = state.cases.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
-    if (sorted.length === 0) {
+    var all = state.cases.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+    if (all.length === 0) {
       wrap.appendChild(el("div", { class: "empty-msg", text: "案件はまだありません。「＋ 新規案件」から作成してください。" }));
+      return;
+    }
+    var sorted = all.filter(function (c) { return caseMatchesSearch(c, state.caseSearchQuery); });
+    if (sorted.length === 0) {
+      wrap.appendChild(el("div", { class: "empty-msg", text: "該当する案件が見つかりません。" }));
       return;
     }
     sorted.forEach(function (c) {
@@ -1405,6 +1425,10 @@
       e.target.value = "";
     };
     document.getElementById("btn-back-list").onclick = function () { persist(); showCaseList(); };
+    document.getElementById("case-search").oninput = function (e) {
+      state.caseSearchQuery = e.target.value;
+      renderCaseList();
+    };
 
     document.querySelectorAll(".tab-btn").forEach(function (b) {
       b.onclick = function () { switchTab(b.dataset.tab); };

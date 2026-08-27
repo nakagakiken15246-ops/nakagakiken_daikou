@@ -176,6 +176,7 @@ textarea{resize:vertical;width:100%;}
 .file-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;}
 
 /* ---------- 案件一覧 ---------- */
+.case-search{margin-bottom:14px;}
 .case-list{display:flex;flex-direction:column;gap:10px;}
 .case-card{
   border:1px solid var(--border);

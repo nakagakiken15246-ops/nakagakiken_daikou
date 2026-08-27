@@ -208,6 +208,13 @@ textarea{resize:vertical;width:100%;}
 .doc-table input[type=text]{font-size:13px;padding:6px 8px;}
 .doc-table select{font-size:13px;padding:6px 8px;width:auto;}
 .doc-table .row-del{background:none;border:none;color:var(--danger);font-size:18px;padding:2px 8px;}
+.table-scroll{overflow-x:auto;}
+.doc-table select{width:auto;}
+.doc-table input[type=checkbox]{width:auto;height:18px;}
+.doc-item-name{font-weight:600;}
+.doc-item-hint{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:3px;line-height:1.5;}
+.docs-category-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+.docs-category-header h2{margin:0;}
 
 /* ---------- 相関図 ---------- */
 .tree-wrap{position:relative;overflow-x:auto;padding:10px 0;min-height:120px;}

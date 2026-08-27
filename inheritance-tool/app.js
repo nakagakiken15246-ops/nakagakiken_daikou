@@ -428,10 +428,12 @@
   =========================================================== */
   function caseMatchesSearch(c, query) {
     if (!query) return true;
+    var phone = c.contact && c.contact.phone;
     var hay = [
       c.title,
       c.decedent && c.decedent.name, c.decedent && c.decedent.kana,
-      c.contact && c.contact.name, c.contact && c.contact.kana
+      c.contact && c.contact.name, c.contact && c.contact.kana,
+      phone, phone && phone.replace(/[^0-9]/g, "") // ハイフン有無どちらでも検索できるよう数字のみ版も対象にする
     ].filter(Boolean).join(" ").toLowerCase();
     return hay.indexOf(query.toLowerCase()) >= 0;
   }

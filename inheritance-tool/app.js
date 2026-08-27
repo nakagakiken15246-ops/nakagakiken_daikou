@@ -30,6 +30,23 @@
 
   var TIER_LABELS = { "-2": "祖父母", "-1": "父母", "0": "被相続人・配偶者・兄弟姉妹", "1": "子・子の配偶者・甥姪", "2": "孫" };
   var TIER_ORDER = [-2, -1, 0, 1, 2];
+  // 世代ラベル表示用の短縮名（実際にその段に入力されている続柄のみを表示するために使う）
+  var TIER_SHORT_NAME = {
+    spouse: "配偶者", child_natural: "子", child_adopted: "子", child_in_law: "子の配偶者", grandchild: "孫",
+    father: "父母", mother: "父母", grandfather: "祖父母", grandmother: "祖父母",
+    sibling: "兄弟姉妹", niece_nephew: "甥・姪", other: "その他"
+  };
+  function computeTierLabel(tier, peopleInTier) {
+    var names = [];
+    var seen = {};
+    if (tier === 0) { names.push("被相続人"); seen["被相続人"] = true; }
+    peopleInTier.forEach(function (p) {
+      var def = REL_MAP[p.relationship];
+      var short = TIER_SHORT_NAME[p.relationship] || (def ? def.label : "");
+      if (short && !seen[short]) { seen[short] = true; names.push(short); }
+    });
+    return names.length ? names.join("・") : TIER_LABELS[tier];
+  }
 
   var STATUS_LABELS = {
     alive: "存命", deceased: "死亡", renounced: "相続放棄", disqualified: "欠格・廃除"
@@ -876,7 +893,7 @@
         return;
       }
       var col = el("div", {}, [
-        el("div", { class: "tree-row-label", text: TIER_LABELS[tier] }),
+        el("div", { class: "tree-row-label", text: computeTierLabel(tier, byTier[tier]) }),
         row
       ]);
       if (isDecedentRow) {
@@ -948,16 +965,20 @@
       bXs.forEach(function (bx) { line(bx, midY, bx, bY); });
     }
 
-    // 同世代内（配偶者⇔本人など）の横線
-    rowEls.forEach(function (row) {
-      var boxes = Array.prototype.slice.call(row.querySelectorAll(".person-box"));
-      if (boxes.length < 2) return;
-      var centers = boxes.map(centerOf);
-      var y = centers[0].top + (centers[0].bottom - centers[0].top) / 2;
-      for (var i = 0; i < centers.length - 1; i++) {
-        line(centers[i].x, y, centers[i + 1].x, y);
+    // 被相続人⇔配偶者の婚姻線のみを引く（兄弟姉妹や子同士は結婚関係ではないため線を引かない）
+    var c = getCase();
+    if (c) {
+      var decedentBox = document.querySelector(".person-box.decedent");
+      var spousePerson = c.people.filter(function (p) { return p.relationship === "spouse"; })[0];
+      if (decedentBox && spousePerson) {
+        var spouseBox = document.querySelector('.person-box[data-pid="' + spousePerson.id + '"]');
+        if (spouseBox) {
+          var dC = centerOf(decedentBox), sC = centerOf(spouseBox);
+          var midY = dC.top + (dC.bottom - dC.top) / 2;
+          line(dC.x, midY, sC.x, midY);
+        }
       }
-    });
+    }
   }
   window.addEventListener("resize", debounce(function () {
     if (state.currentTab === "tree") drawTreeConnectors();

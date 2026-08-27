@@ -1,12 +1,13 @@
 :root{
-  --navy:#1f3a5f;
-  --navy-dark:#152a45;
-  --blue:#2f6fb0;
-  --bg:#f2f4f7;
+  --navy:#c2661a;       /* 見出し・強調（濃いオレンジ） */
+  --navy-dark:#9c4f13;  /* ヘッダー背景（さらに濃いオレンジ） */
+  --blue:#e0812f;       /* ボタン等のメインオレンジ */
+  --brand-pale:#fbe4cc; /* 用紙のオレンジ塗りつぶしに相当する薄オレンジ */
+  --bg:#fbf4ec;
   --card:#ffffff;
-  --border:#dbe1e8;
-  --text:#1e2733;
-  --muted:#6b7684;
+  --border:#eeddc9;
+  --text:#3a2c1e;
+  --muted:#8a7060;
   --danger:#c0392b;
   --ok:#1e7e46;
   --warn:#b5651d;
@@ -42,8 +43,8 @@ body{
 }
 .header-title{flex:1;display:flex;flex-direction:column;line-height:1.3;min-width:0;}
 .header-title strong{font-size:15px;}
-.case-name-display{font-size:13px;color:#c7d5e6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.save-status{font-size:12px;color:#c7d5e6;white-space:nowrap;}
+.case-name-display{font-size:13px;color:#fbe0c3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.save-status{font-size:12px;color:#fbe0c3;white-space:nowrap;}
 .icon-btn{
   background:rgba(255,255,255,.12);
   color:#fff;
@@ -62,7 +63,7 @@ body{
   flex:1 0 auto;
   background:transparent;
   border:none;
-  color:#c7d5e6;
+  color:#f2cda3;
   padding:12px 16px;
   font-size:14px;
   white-space:nowrap;
@@ -70,7 +71,7 @@ body{
 }
 .tab-btn.active{
   color:#fff;
-  border-bottom-color:#7fb2ff;
+  border-bottom-color:#ffcf8a;
   font-weight:600;
 }
 
@@ -124,8 +125,8 @@ textarea{resize:vertical;width:100%;}
 
 .deadline-box{
   margin-top:14px;
-  background:#eef4fb;
-  border:1px solid #cfe0f2;
+  background:var(--brand-pale);
+  border:1px solid #f0c896;
   border-radius:10px;
   padding:10px 14px;
   display:flex;
@@ -135,6 +136,28 @@ textarea{resize:vertical;width:100%;}
   color:var(--navy);
 }
 .deadline-date{font-weight:700;font-size:16px;}
+
+/* ---------- オレンジ塗りつぶしパネル（相談者・対象者情報） ---------- */
+.panel-orange{
+  background:var(--brand-pale);
+  border:1px solid #eec89a;
+}
+.panel-orange h2{color:#7a3d0a;}
+.panel-orange .hint-text{color:#8a5a2a;}
+
+/* ---------- 相談経路・相談内容 選択肢 ---------- */
+.choice-group{display:flex;flex-direction:column;gap:10px;}
+.choice-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.choice-row label.radio-label,.checkbox-grid label.check-label{
+  display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text);flex-direction:row;
+  background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;
+}
+.choice-row label.radio-label input,.checkbox-grid label.check-label input{width:auto;}
+.choice-detail{flex:1;min-width:160px;}
+.checkbox-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;}
+.dm-consent-row{margin-top:10px;display:flex;align-items:center;gap:16px;font-size:13px;color:var(--muted);}
+.dm-consent-row label{flex-direction:row;align-items:center;gap:6px;color:var(--text);}
+.dm-consent-row input{width:auto;}
 
 /* ---------- ボタン ---------- */
 .btn{
@@ -203,7 +226,7 @@ textarea{resize:vertical;width:100%;}
   position:relative;
   flex:0 0 auto;
 }
-.person-box.decedent{border-color:var(--navy);background:#eef4fb;}
+.person-box.decedent{border-color:var(--navy);background:var(--brand-pale);}
 .person-box.status-deceased,.person-box.status-disqualified{border-style:dashed;opacity:.7;}
 .person-box.status-renounced{border-color:var(--warn);}
 .person-box .pb-name{font-weight:700;font-size:13px;line-height:1.3;}
@@ -221,7 +244,7 @@ textarea{resize:vertical;width:100%;}
 
 /* ---------- 相続人サマリー ---------- */
 .heir-summary{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px;}
-.heir-summary .stat{background:#f7f9fb;border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:140px;}
+.heir-summary .stat{background:#fbf1e6;border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:140px;}
 .heir-summary .stat-label{font-size:12px;color:var(--muted);}
 .heir-summary .stat-value{font-size:20px;font-weight:700;color:var(--navy);}
 .heir-table{width:100%;border-collapse:collapse;}
@@ -237,7 +260,7 @@ textarea{resize:vertical;width:100%;}
 .asset-table th{color:var(--muted);font-weight:600;}
 .asset-table td.num,.asset-table th.num{text-align:right;}
 .asset-row{cursor:pointer;}
-.asset-row:active{background:#f5f8fb;}
+.asset-row:active{background:#fbf1e6;}
 .asset-empty{color:var(--muted);font-size:13px;padding:8px 0;}
 .asset-add-row{background:none;border:1px dashed var(--border);border-radius:8px;width:100%;padding:8px;color:var(--muted);font-size:13px;margin-top:6px;}
 
@@ -249,7 +272,7 @@ textarea{resize:vertical;width:100%;}
 
 /* ---------- モーダル ---------- */
 .modal{
-  position:fixed;inset:0;background:rgba(20,30,45,.45);
+  position:fixed;inset:0;background:rgba(40,25,10,.45);
   display:flex;align-items:flex-end;justify-content:center;z-index:100;
 }
 .modal-card{

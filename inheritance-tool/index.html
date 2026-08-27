@@ -68,8 +68,27 @@
             <label>担当者(事務所側)<input type="text" id="f-staff" placeholder="担当税理士・担当者名"></label>
           </div>
         </div>
-        <div class="panel">
-          <h2>被相続人情報</h2>
+
+        <div class="panel panel-orange">
+          <h2>相談者（来所者）情報</h2>
+          <div class="form-grid">
+            <label>氏名<input type="text" id="c-name"></label>
+            <label>フリガナ<input type="text" id="c-kana"></label>
+            <label>住所<input type="text" id="c-address" placeholder="〒"></label>
+            <label>連絡先<input type="text" id="c-phone"></label>
+            <label>連絡のつきやすい時間帯<input type="text" id="c-contact-time" placeholder="例）平日午前中"></label>
+            <label>対象者との続柄<input type="text" id="c-relation" placeholder="例）長男・長女の夫 等"></label>
+            <label>対象者とのご同居<select id="c-living-together">
+              <option value="unknown">未確認</option>
+              <option value="yes">同居している</option>
+              <option value="no">同居していない</option>
+            </select></label>
+          </div>
+        </div>
+
+        <div class="panel panel-orange">
+          <h2>対象者情報（被相続人・申告等が必要な方）</h2>
+          <p class="hint-text">相続が発生している場合は死亡日をご記入ください。生前対策・贈与・遺言等のご相談の場合は空欄で構いません。</p>
           <div class="form-grid">
             <label>氏名<input type="text" id="d-name"></label>
             <label>フリガナ<input type="text" id="d-kana"></label>
@@ -84,6 +103,22 @@
             <div class="deadline-date" id="deadline-date"></div>
           </div>
           <label class="full-width">備考<textarea id="d-note" rows="2"></textarea></label>
+        </div>
+
+        <div class="panel">
+          <h2>相談経路</h2>
+          <div class="choice-group" id="referral-choices"></div>
+          <div class="dm-consent-row">
+            <span>セミナー情報などのDM（ハガキ等）を送付してもよろしいですか</span>
+            <label><input type="radio" name="dm-consent" id="dm-consent-yes" value="yes">希望する</label>
+            <label><input type="radio" name="dm-consent" id="dm-consent-no" value="no">希望しない</label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>相談内容</h2>
+          <p class="hint-text">該当するものをすべて選択してください（複数選択可）。</p>
+          <div class="checkbox-grid" id="consultation-type-checks"></div>
         </div>
       </div>
 

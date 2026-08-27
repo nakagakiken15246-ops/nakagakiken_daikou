@@ -411,6 +411,25 @@
     switchTab("basic");
   }
 
+  function showHelp() {
+    state.helpReturnTo = document.getElementById("screen-workspace").hidden ? "caselist" : "workspace";
+    document.getElementById("screen-caselist").hidden = true;
+    document.getElementById("screen-workspace").hidden = true;
+    document.getElementById("tab-nav").hidden = true;
+    document.getElementById("btn-back-list").hidden = true;
+    document.getElementById("screen-help").hidden = false;
+  }
+  function closeHelp() {
+    document.getElementById("screen-help").hidden = true;
+    if (state.helpReturnTo === "workspace") {
+      document.getElementById("screen-workspace").hidden = false;
+      document.getElementById("tab-nav").hidden = false;
+      document.getElementById("btn-back-list").hidden = false;
+    } else {
+      document.getElementById("screen-caselist").hidden = false;
+    }
+  }
+
   function switchTab(tab) {
     state.currentTab = tab;
     document.querySelectorAll(".tab-btn").forEach(function (b) {
@@ -1410,6 +1429,65 @@
     downloadBlob(blob, (c.title || c.decedent.name || "相続人一覧") + "_相続人一覧_" + todayStamp() + ".xls");
   }
 
+  /* ---------- 必要資料チェックリスト（全項目）の出力 ---------- */
+  function buildDocChecklistPrintHtml(c) {
+    var today = new Date();
+    var todayStr = today.getFullYear() + "年" + (today.getMonth() + 1) + "月" + today.getDate() + "日";
+    var html = "";
+    html += "<h1>必要資料チェックリスト</h1>";
+    html += "<div class='kv-grid'>";
+    html += "<div><span class='k'>案件名</span>" + escapeHtml(c.title || "") + "</div>";
+    html += "<div><span class='k'>対象者様</span>" + escapeHtml(c.decedent.name || "") + "</div>";
+    html += "<div><span class='k'>出力日</span>" + todayStr + "</div>";
+    html += "<div><span class='k'>担当者</span>" + escapeHtml(c.staff || "") + "</div>";
+    html += "</div>";
+    c.docChecklist.forEach(function (cat) {
+      var catDef = DOC_CATEGORY_MAP[cat.key];
+      var title = catDef ? catDef.label : cat.key;
+      if (catDef && catDef.hasExistence) {
+        var exLabel = EXISTENCE_OPTIONS.filter(function (o) { return o.value === (cat.existence || "unknown"); })[0];
+        title += "（有無：" + (exLabel ? exLabel.label : "未確認") + "）";
+      }
+      html += "<h2>" + escapeHtml(title) + "</h2>";
+      html += "<table><thead><tr><th>書類名</th><th>状況</th><th>原本預り</th><th>返却済</th><th>メモ</th></tr></thead><tbody>";
+      cat.items.forEach(function (item) {
+        html += "<tr><td>" + escapeHtml(item.name) + "</td><td>" + escapeHtml(item.status) + "</td><td>" + (item.custody ? "○" : "") + "</td><td>" + (item.returned ? "○" : "") + "</td><td>" + escapeHtml(item.memo) + "</td></tr>";
+      });
+      html += "</tbody></table>";
+    });
+    return html;
+  }
+
+  function printDocChecklist() {
+    var c = getCase(); if (!c) return;
+    var originTab = state.currentTab;
+    document.getElementById("print-area").innerHTML = buildDocChecklistPrintHtml(c);
+    document.querySelectorAll(".tab-pane").forEach(function (p) { p.classList.remove("active"); });
+    document.getElementById("tab-summary").classList.add("active");
+    window.print();
+    switchTab(originTab);
+  }
+
+  function exportDocChecklistXLS() {
+    var c = getCase(); if (!c) return;
+    var rows = [["分類", "有無", "書類名", "状況", "原本預り", "返却済", "メモ"]];
+    c.docChecklist.forEach(function (cat) {
+      var catDef = DOC_CATEGORY_MAP[cat.key];
+      var label = catDef ? catDef.label : cat.key;
+      var exLabel = "";
+      if (catDef && catDef.hasExistence) {
+        var ex = EXISTENCE_OPTIONS.filter(function (o) { return o.value === (cat.existence || "unknown"); })[0];
+        exLabel = ex ? ex.label : "未確認";
+      }
+      cat.items.forEach(function (item) {
+        rows.push([label, exLabel, item.name || "", item.status, item.custody ? "○" : "", item.returned ? "○" : "", item.memo || ""]);
+      });
+    });
+    var xml = buildXlsXml([{ name: "必要資料チェックリスト", rows: rows }]);
+    var blob = new Blob([xml], { type: "application/vnd.ms-excel" });
+    downloadBlob(blob, (c.title || c.decedent.name || "必要資料") + "_必要資料チェックリスト_" + todayStamp() + ".xls");
+  }
+
   /* ===========================================================
      初期化・イベント配線
   =========================================================== */
@@ -1429,6 +1507,8 @@
       state.caseSearchQuery = e.target.value;
       renderCaseList();
     };
+    document.getElementById("btn-help").onclick = showHelp;
+    document.getElementById("btn-close-help").onclick = closeHelp;
 
     document.querySelectorAll(".tab-btn").forEach(function (b) {
       b.onclick = function () { switchTab(b.dataset.tab); };
@@ -1446,6 +1526,8 @@
 
     document.getElementById("btn-print").onclick = function () { renderPrintArea(); window.print(); };
     document.getElementById("btn-print-custody").onclick = printCustodyReceipt;
+    document.getElementById("btn-print-checklist").onclick = printDocChecklist;
+    document.getElementById("btn-export-checklist-xls").onclick = exportDocChecklistXLS;
     document.getElementById("btn-export-json").onclick = function () { var c = getCase(); if (c) exportCaseJSON(c); };
     document.getElementById("btn-export-assets-xls").onclick = exportAssetsXLS;
     document.getElementById("btn-export-heirs-xls").onclick = exportHeirsXLS;

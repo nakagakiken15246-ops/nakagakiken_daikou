@@ -24,7 +24,8 @@
         <span id="case-name-display" class="case-name-display"></span>
       </div>
       <div class="header-status">
-        <span id="save-status" class="save-status">未保存</span>
+        <span id="save-status" class="save-status"></span>
+        <button id="btn-help" class="icon-btn" title="使い方ガイド">📘 使い方</button>
       </div>
     </div>
     <nav id="tab-nav" class="tab-nav" hidden>
@@ -202,9 +203,13 @@
         <div class="panel no-print">
           <div class="panel-header">
             <h2>必要資料チェックリスト</h2>
-            <button id="btn-print-custody" class="btn btn-primary btn-small">🖨 預り証を印刷／PDF保存</button>
+            <div class="panel-actions wrap">
+              <button id="btn-print-checklist" class="btn btn-secondary btn-small">📋 チェックリストを印刷／PDF保存</button>
+              <button id="btn-export-checklist-xls" class="btn btn-secondary btn-small">⇩ チェックリストをExcel(.xls)書き出し</button>
+              <button id="btn-print-custody" class="btn btn-primary btn-small">🔒 預り証を印刷／PDF保存</button>
+            </div>
           </div>
-          <p class="hint-text">分類ごとに、その財産・資料の有無を確認し、書類の取得状況と原本のお預かり状況を記録します。「原本預り」にチェックした書類は、上部の「預り証を印刷」から一覧を出力できます。</p>
+          <p class="hint-text">分類ごとに、その財産・資料の有無を確認し、書類の取得状況と原本のお預かり状況を記録します。「原本預り」にチェックした書類は「預り証を印刷」から、全項目の一覧は「チェックリストを印刷／PDF保存」「Excel書き出し」から出力できます。</p>
           <div class="heir-summary" id="docs-summary"></div>
         </div>
         <div id="docs-categories"></div>
@@ -224,6 +229,148 @@
         <div id="print-area" class="print-area"></div>
       </div>
 
+    </section>
+
+    <!-- ===== 使い方ガイド 画面 ===== -->
+    <section id="screen-help" class="screen" hidden>
+      <div class="panel">
+        <div class="panel-header">
+          <h2>📘 使い方ガイド</h2>
+          <button id="btn-close-help" class="btn btn-secondary btn-small">✕ 閉じる</button>
+        </div>
+        <p class="hint-text">お客様との初回面談で、iPadを使いながら記録を進めるためのツールです。実際の画面とあわせてご案内します。</p>
+        <nav class="help-toc">
+          <a href="#help-overview">概要</a>
+          <a href="#help-setup">初期設定</a>
+          <a href="#help-cases">案件を探す</a>
+          <a href="#help-basic">基本情報</a>
+          <a href="#help-interview">面談記録</a>
+          <a href="#help-tree">相関図・相続人</a>
+          <a href="#help-assets">財産目録</a>
+          <a href="#help-docs">必要資料</a>
+          <a href="#help-output">出力</a>
+          <a href="#help-backup">保存とバックアップ</a>
+          <a href="#help-security">セキュリティ</a>
+          <a href="#help-faq">よくある質問</a>
+        </nav>
+      </div>
+
+      <div class="panel help-section" id="help-overview">
+        <h2><span class="num">00</span>このツールについて</h2>
+        <p>相続税申告・相続手続きのご相談を受ける最初の面談で、その場で入力しながら話を進められるように作られたツールです。相談者・対象者の基本情報、面談での聞き取り内容、相続関係図、財産の概算、必要資料の確認までを、ひとつの案件としてまとめて記録できます。</p>
+        <p>入力したデータは事務所のサーバーではなく、<b>使用している端末のブラウザの中だけ</b>に保存されます。面談が終わったら「概要・印刷」タブから面談記録シートを印刷・PDF保存し、あわせてデータのバックアップ（JSON書き出し）を行ってください。</p>
+      </div>
+
+      <div class="panel help-section" id="help-setup">
+        <h2><span class="num">01</span>はじめに：初期設定</h2>
+        <p>端末ごとに一度だけ行う準備です。</p>
+        <ol class="help-steps">
+          <li><span>iPadの<b>Safari</b>で下記のURLを開きます。<br><code>https://nakagakiken15246-ops.github.io/nakagakiken_daikou/inheritance-tool/</code></span></li>
+          <li><span>画面の共有ボタン（□に↑のアイコン）をタップします。</span></li>
+          <li><span>「<b>ホーム画面に追加</b>」を選択します。アイコンがホーム画面に追加され、アプリのように起動できます。</span></li>
+        </ol>
+        <div class="help-callout warn">
+          <p class="lbl">注意</p>
+          <p><b>プライベートブラウズモードでは使用しないでください。</b>タブを閉じるとその場で入力したデータごと消えてしまいます。</p>
+        </div>
+      </div>
+
+      <div class="panel help-section" id="help-cases">
+        <h2><span class="num">02</span>案件を作る・探す</h2>
+        <p>お客様との面談ごとに、ひとつの「案件」を作成します。案件一覧の <b>＋ 新規案件</b> から作成し、検索ボックスに被相続人名・相談者名・電話番号・案件名を入力すると絞り込めます（電話番号はハイフンの有無どちらでも検索可）。</p>
+        <figure class="help-shot"><img src="manual/caselist.jpg" alt="案件一覧画面"><figcaption>案件一覧画面。作成・検索・複製・削除ができます。</figcaption></figure>
+        <ul>
+          <li><b>開く</b>：その案件の入力画面に進みます</li>
+          <li><b>複製</b>：似た案件のひな形として複製します</li>
+          <li><b>JSON書出</b>：その案件だけをバックアップ・共有用に書き出します</li>
+          <li><b>削除</b>：案件を完全に削除します（元に戻せません）</li>
+        </ul>
+      </div>
+
+      <div class="panel help-section" id="help-basic">
+        <h2><span class="num">03</span>基本情報を入力する</h2>
+        <p>相談者様・対象者様の情報、相談の経緯・内容を記録します。死亡日を入力すると、<b>相続税申告期限（死亡日の翌日から10か月）が自動表示</b>されます。生前対策・贈与・遺言のご相談で対象者がまだご存命の場合は、死亡日は空欄のままで構いません。</p>
+        <figure class="help-shot"><img src="manual/basic.jpg" alt="基本情報タブの画面"><figcaption>基本情報タブ。相談者情報・対象者情報・相談経路が並びます。</figcaption></figure>
+      </div>
+
+      <div class="panel help-section" id="help-interview">
+        <h2><span class="num">04</span>面談記録をつける</h2>
+        <p>遺言書の有無・生前贈与・事業承継など、ヒアリング項目ごとに状況とメモを記録します。面談メモ・特記事項には自由に記載し、次回打合せの予定もあわせて記録してください。</p>
+        <figure class="help-shot"><img src="manual/interview.jpg" alt="面談記録タブの画面"><figcaption>面談記録タブ。項目ごとに選択肢とメモが記録できます。</figcaption></figure>
+      </div>
+
+      <div class="panel help-section" id="help-tree">
+        <h2><span class="num">05</span>相関図・相続人を作成する</h2>
+        <p><b>＋ 人物を追加</b> から続柄を選ぶだけで、世代ごとに自動配置されます。登録した人物から、法定相続人・法定相続分・遺産に係る基礎控除額の目安が自動計算されます。</p>
+        <figure class="help-shot"><img src="manual/tree.jpg" alt="相関図・相続人タブの画面"><figcaption>配偶者・子2名を登録した例。法定相続分が自動表示されます。</figcaption></figure>
+        <div class="help-callout tip">
+          <p class="lbl">代襲相続について</p>
+          <p>「孫（代襲相続人）」「甥・姪（代襲相続人）」は、その代の子・兄弟姉妹が<b>死亡または欠格・廃除の場合のみ</b>登録してください。相続放棄の場合は代襲は発生しません。あくまで面談時の目安であり、詳細判定は必ず税理士が戸籍等を確認のうえ個別に行ってください。</p>
+        </div>
+      </div>
+
+      <div class="panel help-section" id="help-assets">
+        <h2><span class="num">06</span>財産目録を入力する</h2>
+        <p>土地・現金預貯金・有価証券・生命保険金・債務など分類ごとに <b>＋ 項目を追加</b> で入力すると、積極財産合計・純資産額（概算）・基礎控除額との比較が自動集計されます。</p>
+        <figure class="help-shot"><img src="manual/assets.jpg" alt="財産目録タブの画面"><figcaption>財産目録タブ。分類ごとの自動集計と基礎控除比較が表示されます。</figcaption></figure>
+      </div>
+
+      <div class="panel help-section" id="help-docs">
+        <h2><span class="num">07</span>必要資料をチェックする</h2>
+        <p>委任状・被相続人・相続人・不動産・預貯金など11分類、約70項目のチェックリストです。不動産・有価証券・預貯金など財産系の分類は、そもそもその財産が<b>「有／無／未確認」</b>かをまず選び、各書類の状況（未依頼／依頼済／取得済／対象外）と、原本を預かった場合は<b>「原本預り」</b>、返却したら<b>「返却済」</b>にチェックします。</p>
+        <figure class="help-shot"><img src="manual/docs.jpg" alt="必要資料タブの画面"><figcaption>必要資料タブ。上部に現在お預かり中・取得済み・未取得の件数が表示されます。</figcaption></figure>
+        <p>「原本預り」にチェックが入り、まだ「返却済」になっていない書類は、タブ右上の <b>🔒 預り証を印刷／PDF保存</b> から預り証として出力できます。チェックリスト全体（全項目の状況一覧）は <b>📋 チェックリストを印刷／PDF保存</b>・<b>⇩ チェックリストをExcel(.xls)書き出し</b> から出力できます。</p>
+      </div>
+
+      <div class="panel help-section" id="help-output">
+        <h2><span class="num">08</span>出力する（印刷・Excel・JSON）</h2>
+        <figure class="help-shot"><img src="manual/summary.jpg" alt="概要・印刷タブの画面"><figcaption>概要・印刷タブ。面談記録シートとしてまとめて印刷・PDF保存できます。</figcaption></figure>
+        <ul>
+          <li><b>画面を印刷／PDF保存</b>：基本情報・相続人・財産目録・ヒアリング内容をまとめた面談記録シート</li>
+          <li><b>案件データをJSON書き出し</b>：バックアップ・他端末共有用のファイル</li>
+          <li><b>財産目録／相続人一覧をExcel(.xls)書き出し</b>：事務所で使うExcel形式で出力</li>
+        </ul>
+      </div>
+
+      <div class="panel help-section" id="help-backup">
+        <h2><span class="num">09</span>データの保存とバックアップ</h2>
+        <div class="help-callout danger">
+          <p class="lbl">重要</p>
+          <p>データは<b>入力に使った端末のブラウザの中だけ</b>に保存されます。iPadの「履歴とWebサイトデータを消去」を行うと、保存した案件データも一緒に消え、<b>復元できません。</b></p>
+        </div>
+        <h3>他の端末（事務所PC等）とデータを共有したい場合</h3>
+        <ol class="help-steps">
+          <li><span>共有したい端末で、案件を開き「概要・印刷」タブの <b>案件データをJSON書き出し</b> をタップ</span></li>
+          <li><span>事務所のクラウドストレージ（OneDrive・Google Drive等）の共有フォルダに保存、またはメールに添付</span></li>
+          <li><span>受け取る端末でそのファイルを保存し、案件一覧画面の <b>JSON読込</b> から読み込む</span></li>
+        </ol>
+        <div class="help-callout warn">
+          <p class="lbl">これは同期ではありません</p>
+          <p>JSON読込は「その時点のコピー」を取り込むだけです。<b>同じ案件を複数端末で同時に編集しない</b>ようにし、作業を終えるたびに最新のJSONを書き出して共有フォルダに上書きする運用にしてください。</p>
+        </div>
+      </div>
+
+      <div class="panel help-section" id="help-security">
+        <h2><span class="num">10</span>セキュリティについて</h2>
+        <p>このツールには外部通信の仕組みが一切なく、入力したデータがインターネット経由でどこかに送信されることはありません。サーバー自体が存在しないため、サーバー側からの情報漏えいも構造上起こりません。</p>
+        <ul>
+          <li>iPadに<b>パスコード／Face IDを必ず設定</b></li>
+          <li>専用端末を決め、不特定の人に共有しない</li>
+          <li>使い終わったら案件一覧に戻る</li>
+          <li>書き出したJSONファイルは平文データのため、送付方法・保管場所に注意する</li>
+        </ul>
+      </div>
+
+      <div class="panel help-section" id="help-faq">
+        <h2><span class="num">11</span>よくある質問</h2>
+        <ul class="help-faq">
+          <li><p class="q">入力したデータは外部に漏れませんか？</p><p class="a">外部への通信は行っていないため、ネットワーク経由で漏れることは構造上ありません。端末自体の管理にご注意ください。</p></li>
+          <li><p class="q">別の職員のiPad・事務所PCでも同じ案件を見られますか？</p><p class="a">「JSON書き出し／読込」でファイルを受け渡すことで見られます。自動同期ではないため、編集は基本的に1端末に一本化することをおすすめします。</p></li>
+          <li><p class="q">データが消えてしまいました。復元できますか？</p><p class="a">端末内のみの保存のため、Safariのデータ消去や端末の初期化を行うと復元できません。案件が一段落するたびにJSON書き出しでバックアップを取ってください。</p></li>
+          <li><p class="q">預り証はどこから出力しますか？</p><p class="a">「必要資料」タブの右上、預り証を印刷／PDF保存からです。「原本預り」にチェックが入り、まだ「返却済」になっていない書類が対象になります。</p></li>
+          <li><p class="q">必要資料チェックリスト全体を出力したい場合は？</p><p class="a">同じく「必要資料」タブから、チェックリストを印刷／PDF保存、またはExcel(.xls)書き出しができます。</p></li>
+        </ul>
+      </div>
     </section>
   </main>
 </div>

@@ -204,6 +204,12 @@
             <div class="asset-total-row"><span>遺産に係る基礎控除額（目安）</span><strong id="asset-basic-deduction">0</strong></div>
             <div class="asset-total-row" id="asset-taxable-row"><span>基礎控除超過の可能性</span><strong id="asset-taxable-flag">-</strong></div>
           </div>
+          <div class="asset-total-box">
+            <div class="asset-total-row"><span>生命保険金等 合計（概算）</span><strong id="asset-insurance-total">0</strong></div>
+            <div class="asset-total-row"><span>生命保険金の非課税限度額（500万円×法定相続人数・目安）</span><strong id="asset-insurance-exemption">0</strong></div>
+            <div class="asset-total-row grand"><span>差引 生命保険金 課税対象額（目安）</span><strong id="asset-insurance-taxable">0</strong></div>
+          </div>
+          <p class="hint-text small">※ 生命保険金の非課税枠は「相関図・相続人」タブで把握した法定相続人の数をもとにした目安です。相続放棄をした方が受け取った保険金には適用されない等、詳細な判定は税理士が個別に確認してください。</p>
         </div>
       </div>
 
@@ -445,6 +451,9 @@
       </label>
       <label id="a-institution-wrap" hidden>金融機関・証券会社名<input type="text" id="a-institution" placeholder="例）〇〇銀行 〇〇支店"></label>
       <label id="a-beneficiary-wrap" hidden>受取人<input type="text" id="a-beneficiary"></label>
+      <label id="a-premium-payer-wrap" hidden>保険料負担者<input type="text" id="a-premium-payer"></label>
+      <label id="a-contractor-wrap" hidden>契約者<input type="text" id="a-contractor"></label>
+      <label id="a-insured-wrap" hidden>被保険者<input type="text" id="a-insured"></label>
       <label id="a-funeral-type-wrap" hidden>費用の種類
         <select id="a-funeral-type"><option value="">未選択</option></select>
       </label>

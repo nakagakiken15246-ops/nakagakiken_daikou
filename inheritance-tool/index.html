@@ -220,7 +220,7 @@
             <h2>必要資料チェックリスト</h2>
             <div class="panel-actions wrap">
               <button id="btn-print-checklist" class="btn btn-secondary btn-small">📋 チェックリストを印刷／PDF保存</button>
-              <button id="btn-export-checklist-xls" class="btn btn-secondary btn-small">⇩ チェックリストをExcel(.xls)書き出し</button>
+              <button id="btn-export-checklist-xls" class="btn btn-secondary btn-small">⇩ チェックリストをExcel(.xlsx)書き出し</button>
               <button id="btn-print-custody" class="btn btn-primary btn-small">🔒 預り証を印刷／PDF保存</button>
             </div>
           </div>
@@ -238,8 +238,8 @@
           <div class="panel-actions wrap">
             <button id="btn-print" class="btn btn-primary">🖨 面談記録シートを印刷／PDF保存</button>
             <button id="btn-export-json" class="btn btn-secondary">⇩ 案件データをJSON書き出し</button>
-            <button id="btn-export-assets-xls" class="btn btn-secondary">⇩ 財産目録をExcel(.xls)書き出し</button>
-            <button id="btn-export-heirs-xls" class="btn btn-secondary">⇩ 相続人一覧をExcel(.xls)書き出し</button>
+            <button id="btn-export-assets-xls" class="btn btn-secondary">⇩ 財産目録をExcel(.xlsx)書き出し</button>
+            <button id="btn-export-heirs-xls" class="btn btn-secondary">⇩ 相続人一覧をExcel(.xlsx)書き出し</button>
           </div>
         </div>
         <div id="print-area" class="print-area"></div>
@@ -335,7 +335,7 @@
         <h2><span class="num">07</span>必要資料をチェックする</h2>
         <p>委任状・被相続人・相続人・不動産・預貯金など11分類、約70項目のチェックリストです。不動産・有価証券・預貯金など財産系の分類は、そもそもその財産が<b>「有／無／未確認」</b>かをまず選び、各書類の状況（未依頼／依頼済／取得済／対象外）と、原本を預かった場合は<b>「原本預り」</b>、返却したら<b>「返却済」</b>にチェックします。</p>
         <figure class="help-shot"><img src="manual/docs.jpg" alt="必要資料タブの画面"><figcaption>必要資料タブ。上部に現在お預かり中・取得済み・未取得の件数が表示されます。</figcaption></figure>
-        <p>「原本預り」にチェックが入り、まだ「返却済」になっていない書類は、タブ右上の <b>🔒 預り証を印刷／PDF保存</b> から預り証として出力できます。チェックリスト全体（全項目の状況一覧）は <b>📋 チェックリストを印刷／PDF保存</b>・<b>⇩ チェックリストをExcel(.xls)書き出し</b> から出力できます。</p>
+        <p>「原本預り」にチェックが入り、まだ「返却済」になっていない書類は、タブ右上の <b>🔒 預り証を印刷／PDF保存</b> から預り証として出力できます。チェックリスト全体（全項目の状況一覧）は <b>📋 チェックリストを印刷／PDF保存</b>・<b>⇩ チェックリストをExcel(.xlsx)書き出し</b> から出力できます。</p>
       </div>
 
       <div class="panel help-section" id="help-output">
@@ -344,7 +344,7 @@
         <ul>
           <li><b>画面を印刷／PDF保存</b>：基本情報・相続人・財産目録・ヒアリング内容をまとめた面談記録シート</li>
           <li><b>案件データをJSON書き出し</b>：バックアップ・他端末共有用のファイル</li>
-          <li><b>財産目録／相続人一覧をExcel(.xls)書き出し</b>：事務所で使うExcel形式で出力</li>
+          <li><b>財産目録／相続人一覧をExcel(.xlsx)書き出し</b>：事務所で使うExcel形式で出力</li>
         </ul>
       </div>
 
@@ -384,7 +384,7 @@
           <li><p class="q">別の職員のiPad・事務所PCでも同じ案件を見られますか？</p><p class="a">「JSON書き出し／読込」でファイルを受け渡すことで見られます。自動同期ではないため、編集は基本的に1端末に一本化することをおすすめします。</p></li>
           <li><p class="q">データが消えてしまいました。復元できますか？</p><p class="a">端末内のみの保存のため、Safariのデータ消去や端末の初期化を行うと復元できません。案件が一段落するたびにJSON書き出しでバックアップを取ってください。</p></li>
           <li><p class="q">預り証はどこから出力しますか？</p><p class="a">「必要資料」タブの右上、預り証を印刷／PDF保存からです。「原本預り」にチェックが入り、まだ「返却済」になっていない書類が対象になります。</p></li>
-          <li><p class="q">必要資料チェックリスト全体を出力したい場合は？</p><p class="a">同じく「必要資料」タブから、チェックリストを印刷／PDF保存、またはExcel(.xls)書き出しができます。</p></li>
+          <li><p class="q">必要資料チェックリスト全体を出力したい場合は？</p><p class="a">同じく「必要資料」タブから、チェックリストを印刷／PDF保存、またはExcel(.xlsx)書き出しができます。</p></li>
         </ul>
       </div>
     </section>

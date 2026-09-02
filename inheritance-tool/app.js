@@ -1525,7 +1525,9 @@
     return "<Cell><Data ss:Type=\"String\">" + xmlEscape(v) + "</Data></Cell>";
   }
   function buildXlsXml(sheets) {
-    var xml = '<?xml version="1.0"?>\n';
+    // 文字コード未指定のままだとExcelが日本語を正しく認識できず文字化けするため、
+    // XML宣言でUTF-8を明示し、さらにBOMを付与して確実にUTF-8として読み込ませる。
+    var xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<?mso-application progid="Excel.Sheet"?>\n';
     xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n';
     xml += '<Styles><Style ss:ID="hdr"><Font ss:Bold="1"/><Interior ss:Color="#DCE6F1" ss:Pattern="Solid"/></Style></Styles>\n';
@@ -1539,7 +1541,7 @@
       xml += "</Table></Worksheet>\n";
     });
     xml += "</Workbook>";
-    return xml;
+    return "﻿" + xml; // UTF-8 BOM（Excelが文字コードをUTF-8と正しく判定するために必要）
   }
   function exportAssetsXLS() {
     var c = getCase(); if (!c) return;

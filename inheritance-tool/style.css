@@ -111,6 +111,14 @@ label{
   color:var(--muted);
 }
 label.full-width{grid-column:1/-1;margin-top:12px;}
+
+.wareki-field{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;margin-top:2px;}
+.wareki-label{font-size:13px;color:var(--muted);}
+.wareki-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.wareki-row select{width:auto;min-width:84px;}
+.wareki-row input[type=number]{width:66px;text-align:right;-moz-appearance:textfield;}
+.wareki-row span{font-size:14px;color:var(--muted);}
+.wareki-iso{font-size:12.5px;color:var(--muted);}
 input,select,textarea{
   font:inherit;
   font-size:16px; /* iPadでズームしないよう16px以上 */
@@ -244,6 +252,7 @@ textarea{resize:vertical;width:100%;}
 .pb-status.tag-deceased{background:#eee;color:#666;}
 .pb-status.tag-renounced{background:#fbeee0;color:var(--warn);}
 .pb-status.tag-disqualified{background:#fdecea;color:var(--danger);}
+.pb-living{font-size:10px;margin-top:3px;color:var(--navy);}
 .add-person-inline{
   width:120px;height:60px;border:2px dashed var(--border);border-radius:10px;
   display:flex;align-items:center;justify-content:center;color:var(--muted);

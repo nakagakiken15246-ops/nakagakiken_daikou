@@ -95,7 +95,16 @@
           <div class="form-grid">
             <label>氏名<input type="text" id="d-name"></label>
             <label>フリガナ<input type="text" id="d-kana"></label>
-            <label>生年月日<input type="date" id="d-birth"></label>
+            <div class="wareki-field">
+              <span class="wareki-label">生年月日（和暦）</span>
+              <div class="wareki-row">
+                <select id="d-birth-era"></select>
+                <input type="number" id="d-birth-year" min="1" max="99" placeholder="年" inputmode="numeric"><span>年</span>
+                <input type="number" id="d-birth-month" min="1" max="12" placeholder="月" inputmode="numeric"><span>月</span>
+                <input type="number" id="d-birth-day" min="1" max="31" placeholder="日" inputmode="numeric"><span>日</span>
+              </div>
+              <span class="wareki-iso" id="d-birth-iso-display"></span>
+            </div>
             <label>死亡日(相続開始日)<input type="date" id="d-death"></label>
             <label>死亡時の住所<input type="text" id="d-address"></label>
             <label>本籍地<input type="text" id="d-honseki"></label>
@@ -170,7 +179,7 @@
           <h2>法定相続人・法定相続分（目安）</h2>
           <div id="heir-summary" class="heir-summary"></div>
           <table class="heir-table">
-            <thead><tr><th>氏名</th><th>続柄</th><th>状況</th><th>法定相続分</th></tr></thead>
+            <thead><tr><th>氏名</th><th>続柄</th><th>状況</th><th>法定相続分</th><th>同居</th></tr></thead>
             <tbody id="heir-table-body"></tbody>
           </table>
           <p class="disclaimer">※ 法定相続人・相続分・基礎控除額の自動計算は面談時の目安です。代襲相続、養子の数の制限、半血兄弟姉妹の相続分などの詳細判定は、必ず税理士が戸籍等の確認の上で個別に判断してください。</p>
@@ -218,9 +227,10 @@
       <!-- --- 概要・印刷 --- -->
       <div id="tab-summary" class="tab-pane">
         <div class="panel no-print">
-          <h2>出力</h2>
+          <h2>出力（面談内容の記録）</h2>
+          <p class="hint-text">こちらは面談内容の記録（基本情報・相続人・財産目録・ヒアリング内容）のみを出力します。必要資料チェックリストは「必要資料」タブから別途、印刷／PDF保存・Excel書き出しができます。</p>
           <div class="panel-actions wrap">
-            <button id="btn-print" class="btn btn-primary">🖨 画面を印刷／PDF保存</button>
+            <button id="btn-print" class="btn btn-primary">🖨 面談記録シートを印刷／PDF保存</button>
             <button id="btn-export-json" class="btn btn-secondary">⇩ 案件データをJSON書き出し</button>
             <button id="btn-export-assets-xls" class="btn btn-secondary">⇩ 財産目録をExcel(.xls)書き出し</button>
             <button id="btn-export-heirs-xls" class="btn btn-secondary">⇩ 相続人一覧をExcel(.xls)書き出し</button>
@@ -383,7 +393,6 @@
       <label>氏名<input type="text" id="p-name"></label>
       <label>フリガナ<input type="text" id="p-kana"></label>
       <label>続柄<select id="p-relationship"></select></label>
-      <label>生年月日<input type="date" id="p-birth"></label>
       <label>状況
         <select id="p-status">
           <option value="alive">存命</option>
@@ -393,6 +402,23 @@
         </select>
       </label>
       <label>連絡先<input type="text" id="p-contact"></label>
+      <label>被相続人との同居
+        <select id="p-living-together">
+          <option value="unknown">未確認</option>
+          <option value="yes">同居している</option>
+          <option value="no">同居していない</option>
+        </select>
+      </label>
+      <div class="wareki-field">
+        <span class="wareki-label">生年月日（和暦）</span>
+        <div class="wareki-row">
+          <select id="p-birth-era"></select>
+          <input type="number" id="p-birth-year" min="1" max="99" placeholder="年" inputmode="numeric"><span>年</span>
+          <input type="number" id="p-birth-month" min="1" max="12" placeholder="月" inputmode="numeric"><span>月</span>
+          <input type="number" id="p-birth-day" min="1" max="31" placeholder="日" inputmode="numeric"><span>日</span>
+        </div>
+        <span class="wareki-iso" id="p-birth-iso-display"></span>
+      </div>
     </div>
     <label class="full-width">備考<textarea id="p-note" rows="2"></textarea></label>
     <p class="hint-text small">「孫」「甥・姪」は、その代の子・兄弟姉妹が死亡または欠格・廃除の場合のみ追加してください（相続放棄では代襲しません）。</p>
@@ -414,6 +440,15 @@
       <label>種類・銘柄・所在地等<input type="text" id="a-description"></label>
       <label>数量・面積等<input type="text" id="a-quantity"></label>
       <label>概算評価額（円）<input type="number" id="a-value" inputmode="numeric" step="1"></label>
+      <label id="a-land-type-wrap" hidden>土地の利用区分
+        <select id="a-land-type"><option value="">未選択</option></select>
+      </label>
+      <label id="a-institution-wrap" hidden>金融機関・証券会社名<input type="text" id="a-institution" placeholder="例）〇〇銀行 〇〇支店"></label>
+      <label id="a-beneficiary-wrap" hidden>受取人<input type="text" id="a-beneficiary"></label>
+      <label id="a-funeral-type-wrap" hidden>費用の種類
+        <select id="a-funeral-type"><option value="">未選択</option></select>
+      </label>
+      <label id="a-shichiya-wrap" hidden>初七日費用<select id="a-shichiya"></select></label>
     </div>
     <label class="full-width">備考<textarea id="a-note" rows="2"></textarea></label>
     <div class="modal-actions">

@@ -174,11 +174,19 @@
     { key: "cash", label: "現金・預貯金", sign: 1 },
     { key: "securities", label: "有価証券（株式・投資信託等）", sign: 1 },
     { key: "insurance", label: "生命保険金等", sign: 1 },
+    { key: "insurance_rights", label: "生命保険契約に関する権利", sign: 1 },
     { key: "retirement", label: "死亡退職金等", sign: 1 },
     { key: "business_assets", label: "事業用資産・自社株", sign: 1 },
     { key: "other_assets", label: "家庭用財産・その他の財産", sign: 1 },
     { key: "debt", label: "債務（借入金等）", sign: -1 },
     { key: "funeral", label: "葬式費用", sign: -1 }
+  ];
+  var LAND_TYPE_OPTIONS = ["自用地", "貸地", "貸家建付地", "使用貸借"];
+  var FUNERAL_TYPE_OPTIONS = ["葬儀費用", "お布施", "その他"];
+  var SHICHIYA_OPTIONS = [
+    { value: "unknown", label: "未確認" },
+    { value: "included", label: "含む" },
+    { value: "excluded", label: "含まない" }
   ];
   var ASSET_CAT_MAP = {};
   ASSET_CATEGORIES.forEach(function (c) { ASSET_CAT_MAP[c.key] = c; });
@@ -222,6 +230,71 @@
     if (isNaN(d.getTime())) return s;
     return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日";
   }
+  // 和暦⇔西暦 変換（生年月日の入力用）
+  var ERA_TABLE = [
+    { key: "reiwa", label: "令和", start: "2019-05-01" },
+    { key: "heisei", label: "平成", start: "1989-01-08" },
+    { key: "showa", label: "昭和", start: "1926-12-25" },
+    { key: "taisho", label: "大正", start: "1912-07-30" },
+    { key: "meiji", label: "明治", start: "1868-01-25" }
+  ];
+  function isoToWareki(iso) {
+    if (!iso) return null;
+    var d = new Date(iso + "T00:00:00");
+    if (isNaN(d.getTime())) return null;
+    for (var i = 0; i < ERA_TABLE.length; i++) {
+      var era = ERA_TABLE[i];
+      var startD = new Date(era.start + "T00:00:00");
+      if (d.getTime() >= startD.getTime()) {
+        return { era: era.key, year: d.getFullYear() - startD.getFullYear() + 1, month: d.getMonth() + 1, day: d.getDate() };
+      }
+    }
+    return null;
+  }
+  function warekiToIso(eraKey, year, month, day) {
+    var era = ERA_TABLE.filter(function (e) { return e.key === eraKey; })[0];
+    if (!era || !year || !month || !day) return null;
+    var startD = new Date(era.start + "T00:00:00");
+    var gYear = startD.getFullYear() + year - 1;
+    var d = new Date(gYear, month - 1, day);
+    if (isNaN(d.getTime()) || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+    if (d.getTime() < startD.getTime()) return null; // その元号の開始日より前は無効
+    return gYear + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+  }
+  // 生年月日欄（和暦4分割入力）を配線する。getIso/setIsoで既存のISO日付文字列とやり取りする。
+  function wireWarekiField(prefix, getIso, setIso, onChangeExtra) {
+    var eraSel = document.getElementById(prefix + "-era");
+    var yearInp = document.getElementById(prefix + "-year");
+    var monthInp = document.getElementById(prefix + "-month");
+    var dayInp = document.getElementById(prefix + "-day");
+    var isoDisplay = document.getElementById(prefix + "-iso-display");
+    if (eraSel.options.length === 0) {
+      ERA_TABLE.forEach(function (e) { eraSel.appendChild(el("option", { value: e.key, text: e.label })); });
+    }
+    function updateDisplay() {
+      var iso = getIso();
+      isoDisplay.textContent = iso ? "（" + formatDateJ(iso) + "）" : "";
+    }
+    function applyChange() {
+      var iso = warekiToIso(eraSel.value, parseInt(yearInp.value, 10), parseInt(monthInp.value, 10), parseInt(dayInp.value, 10));
+      setIso(iso || "");
+      updateDisplay();
+      if (onChangeExtra) onChangeExtra();
+    }
+    eraSel.onchange = applyChange;
+    yearInp.oninput = applyChange;
+    monthInp.oninput = applyChange;
+    dayInp.oninput = applyChange;
+    // 表示を現在のISO値から復元
+    var w = isoToWareki(getIso());
+    if (w) {
+      eraSel.value = w.era; yearInp.value = w.year; monthInp.value = w.month; dayInp.value = w.day;
+    } else {
+      eraSel.value = ERA_TABLE[0].key; yearInp.value = ""; monthInp.value = ""; dayInp.value = "";
+    }
+    updateDisplay();
+  }
+
   function addMonths(dateStr, months) {
     var d = new Date(dateStr + "T00:00:00");
     if (isNaN(d.getTime())) return null;
@@ -621,7 +694,7 @@
 
     bindField("d-name", function () { return c.decedent.name; }, function (v) { c.decedent.name = v; if (!c.title) document.getElementById("case-name-display").textContent = v; });
     bindField("d-kana", function () { return c.decedent.kana; }, function (v) { c.decedent.kana = v; });
-    bindField("d-birth", function () { return c.decedent.birth; }, function (v) { c.decedent.birth = v; });
+    wireWarekiField("d-birth", function () { return c.decedent.birth; }, function (v) { c.decedent.birth = v; touch(c); persistDebounced(); });
     bindField("d-death", function () { return c.decedent.death; }, function (v) { c.decedent.death = v; updateDeadlineBox(c); });
     bindField("d-address", function () { return c.decedent.address; }, function (v) { c.decedent.address = v; });
     bindField("d-honseki", function () { return c.decedent.honseki; }, function (v) { c.decedent.honseki = v; });
@@ -959,6 +1032,9 @@
     box.appendChild(el("div", { class: "pb-rel", text: relLabel }));
     if (!p.isDecedent) {
       box.appendChild(el("div", { class: "pb-status tag-" + statusKey, text: STATUS_LABELS[statusKey] }));
+      if (p.livingTogether === "yes") {
+        box.appendChild(el("div", { class: "pb-living", text: "🏠 同居" }));
+      }
     }
     box.dataset.pid = p.id;
     if (!p.isDecedent) box.onclick = function () { openPersonModal(p.id); };
@@ -1023,6 +1099,8 @@
     if (state.currentTab === "tree") drawTreeConnectors();
   }, 200));
 
+  var personModalBirthIso = "";
+
   function openPersonModal(id) {
     var c = getCase(); if (!c) return;
     editingPersonId = id;
@@ -1036,10 +1114,12 @@
     document.getElementById("p-name").value = p ? p.name : "";
     document.getElementById("p-kana").value = p ? p.kana : "";
     sel.value = p ? p.relationship : "child_natural";
-    document.getElementById("p-birth").value = p ? p.birth || "" : "";
     document.getElementById("p-status").value = p ? p.status : "alive";
     document.getElementById("p-contact").value = p ? p.contact || "" : "";
     document.getElementById("p-note").value = p ? p.note || "" : "";
+    document.getElementById("p-living-together").value = p ? (p.livingTogether || "unknown") : "unknown";
+    personModalBirthIso = p ? (p.birth || "") : "";
+    wireWarekiField("p-birth", function () { return personModalBirthIso; }, function (v) { personModalBirthIso = v; });
     document.getElementById("btn-delete-person").hidden = !p;
     modal.hidden = false;
   }
@@ -1052,9 +1132,10 @@
       name: name,
       kana: document.getElementById("p-kana").value.trim(),
       relationship: document.getElementById("p-relationship").value,
-      birth: document.getElementById("p-birth").value,
+      birth: personModalBirthIso,
       status: document.getElementById("p-status").value,
       contact: document.getElementById("p-contact").value.trim(),
+      livingTogether: document.getElementById("p-living-together").value,
       note: document.getElementById("p-note").value.trim()
     };
     if (editingPersonId) {
@@ -1102,7 +1183,7 @@
     if (result.spouse) rows.push(result.spouse);
     rows = rows.concat(result.groupHeirs);
     if (rows.length === 0) {
-      body.appendChild(el("tr", {}, [el("td", { colspan: "4", class: "asset-empty", text: "相続関係図に人物を追加すると、ここに法定相続人が表示されます。" })]));
+      body.appendChild(el("tr", {}, [el("td", { colspan: "5", class: "asset-empty", text: "相続関係図に人物を追加すると、ここに法定相続人が表示されます。" })]));
     } else {
       rows.forEach(function (p) {
         var def = REL_MAP[p.relationship];
@@ -1111,7 +1192,8 @@
           el("td", { text: p.name || "（未入力）" }),
           el("td", { text: def ? def.label : "" }),
           el("td", { text: STATUS_LABELS[p.status] }),
-          el("td", { text: fracToStr(share) })
+          el("td", { text: fracToStr(share) }),
+          el("td", { text: LIVING_TOGETHER_LABELS[p.livingTogether || "unknown"] })
         ]));
       });
     }
@@ -1141,7 +1223,7 @@
       } else {
         items.forEach(function (a) {
           var tr = el("tr", { class: "asset-row", onclick: function () { openAssetModal(a.id); } }, [
-            el("td", { text: a.description || "（未入力）" }),
+            el("td", { text: (a.description || "（未入力）") + assetDetailSuffix(a) }),
             el("td", { text: a.quantity || "" }),
             el("td", { class: "num", text: formatYen(a.value) })
           ]);
@@ -1192,6 +1274,46 @@
     }
   }
 
+  // 分類ごとの追加項目（種別・金融機関名・受取人・費目等）の表示文言
+  function assetDetailSuffix(a) {
+    var parts = [];
+    if (a.category === "land" && a.landType) parts.push(a.landType);
+    if ((a.category === "cash" || a.category === "securities") && a.institution) parts.push(a.institution);
+    if (a.category === "insurance" && a.beneficiary) parts.push("受取人：" + a.beneficiary);
+    if (a.category === "funeral" && a.funeralType) {
+      var t = a.funeralType;
+      if (t === "お布施" && a.shichiya && a.shichiya !== "unknown") {
+        t += "／初七日費用" + (a.shichiya === "included" ? "含む" : "含まない");
+      }
+      parts.push(t);
+    }
+    return parts.length ? "（" + parts.join("・") + "）" : "";
+  }
+
+  function populateAssetExtraSelectsOnce() {
+    var landSel = document.getElementById("a-land-type");
+    if (landSel.options.length <= 1) {
+      LAND_TYPE_OPTIONS.forEach(function (t) { landSel.appendChild(el("option", { value: t, text: t })); });
+    }
+    var funeralSel = document.getElementById("a-funeral-type");
+    if (funeralSel.options.length <= 1) {
+      FUNERAL_TYPE_OPTIONS.forEach(function (t) { funeralSel.appendChild(el("option", { value: t, text: t })); });
+    }
+    var shichiyaSel = document.getElementById("a-shichiya");
+    if (shichiyaSel.options.length === 0) {
+      SHICHIYA_OPTIONS.forEach(function (o) { shichiyaSel.appendChild(el("option", { value: o.value, text: o.label })); });
+    }
+  }
+  function updateAssetExtraFieldsVisibility() {
+    var category = document.getElementById("a-category").value;
+    document.getElementById("a-land-type-wrap").hidden = category !== "land";
+    document.getElementById("a-institution-wrap").hidden = !(category === "cash" || category === "securities");
+    document.getElementById("a-beneficiary-wrap").hidden = category !== "insurance";
+    document.getElementById("a-funeral-type-wrap").hidden = category !== "funeral";
+    var funeralType = document.getElementById("a-funeral-type").value;
+    document.getElementById("a-shichiya-wrap").hidden = !(category === "funeral" && funeralType === "お布施");
+  }
+
   function openAssetModal(id, defaultCategory) {
     var c = getCase(); if (!c) return;
     editingAssetId = id;
@@ -1199,6 +1321,7 @@
     var sel = document.getElementById("a-category");
     sel.innerHTML = "";
     ASSET_CATEGORIES.forEach(function (cat) { sel.appendChild(el("option", { value: cat.key, text: cat.label })); });
+    populateAssetExtraSelectsOnce();
 
     var a = id ? c.assets.find(function (a) { return a.id === id; }) : null;
     document.getElementById("asset-modal-title").textContent = a ? "財産・債務を編集" : "財産・債務を追加";
@@ -1207,6 +1330,12 @@
     document.getElementById("a-quantity").value = a ? a.quantity : "";
     document.getElementById("a-value").value = a ? a.value : "";
     document.getElementById("a-note").value = a ? a.note || "" : "";
+    document.getElementById("a-land-type").value = a ? (a.landType || "") : "";
+    document.getElementById("a-institution").value = a ? (a.institution || "") : "";
+    document.getElementById("a-beneficiary").value = a ? (a.beneficiary || "") : "";
+    document.getElementById("a-funeral-type").value = a ? (a.funeralType || "") : "";
+    document.getElementById("a-shichiya").value = a ? (a.shichiya || "unknown") : "unknown";
+    updateAssetExtraFieldsVisibility();
     document.getElementById("btn-delete-asset").hidden = !a;
     modal.hidden = false;
   }
@@ -1218,6 +1347,11 @@
       description: document.getElementById("a-description").value.trim(),
       quantity: document.getElementById("a-quantity").value.trim(),
       value: Number(document.getElementById("a-value").value) || 0,
+      landType: document.getElementById("a-land-type").value,
+      institution: document.getElementById("a-institution").value.trim(),
+      beneficiary: document.getElementById("a-beneficiary").value.trim(),
+      funeralType: document.getElementById("a-funeral-type").value,
+      shichiya: document.getElementById("a-shichiya").value,
       note: document.getElementById("a-note").value.trim()
     };
     if (editingAssetId) {
@@ -1294,16 +1428,16 @@
     html += "</div>";
 
     html += "<h2>法定相続人・法定相続分（目安）</h2>";
-    html += "<table><thead><tr><th>氏名</th><th>続柄</th><th>状況</th><th>法定相続分</th></tr></thead><tbody>";
+    html += "<table><thead><tr><th>氏名</th><th>続柄</th><th>状況</th><th>法定相続分</th><th>同居</th></tr></thead><tbody>";
     var rows = [];
     if (result.spouse) rows.push(result.spouse);
     rows = rows.concat(result.groupHeirs);
     if (rows.length === 0) {
-      html += "<tr><td colspan='4'>未入力</td></tr>";
+      html += "<tr><td colspan='5'>未入力</td></tr>";
     } else {
       rows.forEach(function (p) {
         var def = REL_MAP[p.relationship];
-        html += "<tr><td>" + escapeHtml(p.name) + "</td><td>" + (def ? def.label : "") + "</td><td>" + STATUS_LABELS[p.status] + "</td><td>" + fracToStr(result.shares[p.id]) + "</td></tr>";
+        html += "<tr><td>" + escapeHtml(p.name) + "</td><td>" + (def ? def.label : "") + "</td><td>" + STATUS_LABELS[p.status] + "</td><td>" + fracToStr(result.shares[p.id]) + "</td><td>" + LIVING_TOGETHER_LABELS[p.livingTogether || "unknown"] + "</td></tr>";
       });
     }
     html += "</tbody></table>";
@@ -1316,7 +1450,7 @@
     } else {
       ASSET_CATEGORIES.forEach(function (cat) {
         c.assets.filter(function (a) { return a.category === cat.key; }).forEach(function (a) {
-          html += "<tr><td>" + cat.label + "</td><td>" + escapeHtml(a.description) + "</td><td>" + escapeHtml(a.quantity) + "</td><td>" + formatYen(a.value) + "</td></tr>";
+          html += "<tr><td>" + cat.label + "</td><td>" + escapeHtml(a.description) + escapeHtml(assetDetailSuffix(a)) + "</td><td>" + escapeHtml(a.quantity) + "</td><td>" + formatYen(a.value) + "</td></tr>";
         });
       });
     }
@@ -1335,28 +1469,7 @@
     });
     html += "</tbody></table>";
 
-    html += "<h2>必要資料（財産の有無・未取得分）</h2>";
-    html += "<div class='kv-grid'>";
-    c.docChecklist.forEach(function (cat) {
-      var catDef = DOC_CATEGORY_MAP[cat.key];
-      if (!catDef || !catDef.hasExistence) return;
-      var exLabel = EXISTENCE_OPTIONS.filter(function (o) { return o.value === (cat.existence || "unknown"); })[0];
-      html += "<div><span class='k'>" + catDef.label + "</span>" + (exLabel ? exLabel.label : "未確認") + "</div>";
-    });
-    html += "</div>";
-    html += "<table><thead><tr><th>分類</th><th>書類名</th><th>状況</th></tr></thead><tbody>";
-    var outstandingRows = [];
-    c.docChecklist.forEach(function (cat) {
-      var catDef = DOC_CATEGORY_MAP[cat.key];
-      cat.items.forEach(function (item) {
-        if (item.status === "未依頼" || item.status === "依頼済") {
-          outstandingRows.push("<tr><td>" + (catDef ? catDef.label : cat.key) + "</td><td>" + escapeHtml(item.name) + "</td><td>" + escapeHtml(item.status) + "</td></tr>");
-        }
-      });
-    });
-    html += outstandingRows.length ? outstandingRows.join("") : "<tr><td colspan='3'>未取得の資料はありません（対象外・取得済みのみ）。</td></tr>";
-    html += "</tbody></table>";
-    html += "<p style='font-size:11px;color:#666;'>※ 必要資料チェックリストの全項目・原本お預かり状況は「必要資料」タブでご確認ください。</p>";
+    html += "<p style='font-size:11px;color:#666;'>※ 必要資料チェックリスト（有無・状況・原本お預かり状況）は「必要資料」タブから別途印刷・PDF保存・Excel書き出しができます。</p>";
 
     html += "<h2>面談メモ・特記事項</h2><div class='memo-block'>" + escapeHtml(c.interview.memo || "（記載なし）") + "</div>";
     html += "<div class='kv-grid' style='margin-top:8px;'><div><span class='k'>次回打合せ予定</span>" + escapeHtml(formatDateJ(c.interview.nextDate)) + "</div><div><span class='k'>次回打合せ内容</span>" + escapeHtml(c.interview.nextMemo || "") + "</div></div>";
@@ -1393,18 +1506,24 @@
   }
   function exportAssetsXLS() {
     var c = getCase(); if (!c) return;
-    var rows = [["分類", "内容", "数量等", "概算評価額（円）", "備考"]];
+    var rows = [["分類", "内容", "土地区分", "金融機関・証券会社名", "受取人", "費用種別", "初七日費用", "数量等", "概算評価額（円）", "備考"]];
+    var shichiyaMap = {}; SHICHIYA_OPTIONS.forEach(function (o) { shichiyaMap[o.value] = o.label; });
     ASSET_CATEGORIES.forEach(function (cat) {
       c.assets.filter(function (a) { return a.category === cat.key; }).forEach(function (a) {
-        rows.push([cat.label, a.description || "", a.quantity || "", Number(a.value) || 0, a.note || ""]);
+        rows.push([
+          cat.label, a.description || "",
+          a.landType || "", a.institution || "", a.beneficiary || "",
+          a.funeralType || "", (a.funeralType === "お布施" ? (shichiyaMap[a.shichiya] || "") : ""),
+          a.quantity || "", Number(a.value) || 0, a.note || ""
+        ]);
       });
     });
     var plus = 0, minus = 0;
     c.assets.forEach(function (a) { var cat = ASSET_CAT_MAP[a.category]; var v = Number(a.value) || 0; if (cat && cat.sign > 0) plus += v; else minus += v; });
-    rows.push(["", "", "", "", ""]);
-    rows.push(["積極財産合計", "", "", plus, ""]);
-    rows.push(["債務・葬式費用合計", "", "", minus, ""]);
-    rows.push(["純資産額（概算）", "", "", plus - minus, ""]);
+    rows.push(["", "", "", "", "", "", "", "", "", ""]);
+    rows.push(["積極財産合計", "", "", "", "", "", "", "", plus, ""]);
+    rows.push(["債務・葬式費用合計", "", "", "", "", "", "", "", minus, ""]);
+    rows.push(["純資産額（概算）", "", "", "", "", "", "", "", plus - minus, ""]);
     var xml = buildXlsXml([{ name: "財産目録", rows: rows }]);
     var blob = new Blob([xml], { type: "application/vnd.ms-excel" });
     downloadBlob(blob, (c.title || c.decedent.name || "財産目録") + "_財産目録_" + todayStamp() + ".xls");
@@ -1412,18 +1531,18 @@
   function exportHeirsXLS() {
     var c = getCase(); if (!c) return;
     var result = computeShares(c.people);
-    var rows = [["氏名", "フリガナ", "続柄", "状況", "法定相続分"]];
+    var rows = [["氏名", "フリガナ", "続柄", "状況", "法定相続分", "同居"]];
     var list = [];
     if (result.spouse) list.push(result.spouse);
     list = list.concat(result.groupHeirs);
     list.forEach(function (p) {
       var def = REL_MAP[p.relationship];
-      rows.push([p.name || "", p.kana || "", def ? def.label : "", STATUS_LABELS[p.status], fracToStr(result.shares[p.id])]);
+      rows.push([p.name || "", p.kana || "", def ? def.label : "", STATUS_LABELS[p.status], fracToStr(result.shares[p.id]), LIVING_TOGETHER_LABELS[p.livingTogether || "unknown"]]);
     });
     var deductionCount = computeDeductionCount(c.people);
-    rows.push(["", "", "", "", ""]);
-    rows.push(["法定相続人の数（基礎控除用・目安）", deductionCount, "", "", ""]);
-    rows.push(["遺産に係る基礎控除額（目安）", 30000000 + 6000000 * deductionCount, "", "", ""]);
+    rows.push(["", "", "", "", "", ""]);
+    rows.push(["法定相続人の数（基礎控除用・目安）", deductionCount, "", "", "", ""]);
+    rows.push(["遺産に係る基礎控除額（目安）", 30000000 + 6000000 * deductionCount, "", "", "", ""]);
     var xml = buildXlsXml([{ name: "相続人一覧", rows: rows }]);
     var blob = new Blob([xml], { type: "application/vnd.ms-excel" });
     downloadBlob(blob, (c.title || c.decedent.name || "相続人一覧") + "_相続人一覧_" + todayStamp() + ".xls");
@@ -1523,6 +1642,8 @@
     document.getElementById("btn-cancel-asset").onclick = closeAssetModal;
     document.getElementById("btn-save-asset").onclick = saveAssetModal;
     document.getElementById("btn-delete-asset").onclick = deleteAssetModal;
+    document.getElementById("a-category").onchange = updateAssetExtraFieldsVisibility;
+    document.getElementById("a-funeral-type").onchange = updateAssetExtraFieldsVisibility;
 
     document.getElementById("btn-print").onclick = function () { renderPrintArea(); window.print(); };
     document.getElementById("btn-print-custody").onclick = printCustodyReceipt;

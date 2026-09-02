@@ -1244,6 +1244,16 @@
     updateAssetTotals(c);
   }
 
+  // 生命保険金の非課税枠（500万円×法定相続人の数・目安）を計算する
+  function computeInsuranceExemption(c) {
+    var deductionCount = c._computed ? c._computed.deductionCount : computeDeductionCount(c.people);
+    var total = c.assets.filter(function (a) { return a.category === "insurance"; })
+      .reduce(function (s, a) { return s + (Number(a.value) || 0); }, 0);
+    var exemption = 5000000 * deductionCount;
+    var taxable = Math.max(0, total - exemption);
+    return { total: total, exemption: exemption, taxable: taxable, deductionCount: deductionCount };
+  }
+
   function updateAssetTotals(c) {
     if (!document.getElementById("asset-total-plus")) return;
     var plus = 0, minus = 0;
@@ -1272,6 +1282,11 @@
       flag.textContent = "基礎控除の範囲内の可能性があります";
       flag.className = "flag-under";
     }
+
+    var ins = computeInsuranceExemption(c);
+    document.getElementById("asset-insurance-total").textContent = formatYen(ins.total);
+    document.getElementById("asset-insurance-exemption").textContent = formatYen(ins.exemption);
+    document.getElementById("asset-insurance-taxable").textContent = formatYen(ins.taxable);
   }
 
   // 分類ごとの追加項目（種別・金融機関名・受取人・費目等）の表示文言
@@ -1280,6 +1295,11 @@
     if (a.category === "land" && a.landType) parts.push(a.landType);
     if ((a.category === "cash" || a.category === "securities") && a.institution) parts.push(a.institution);
     if (a.category === "insurance" && a.beneficiary) parts.push("受取人：" + a.beneficiary);
+    if (a.category === "insurance_rights") {
+      if (a.premiumPayer) parts.push("保険料負担者：" + a.premiumPayer);
+      if (a.contractor) parts.push("契約者：" + a.contractor);
+      if (a.insured) parts.push("被保険者：" + a.insured);
+    }
     if (a.category === "funeral" && a.funeralType) {
       var t = a.funeralType;
       if (t === "お布施" && a.shichiya && a.shichiya !== "unknown") {
@@ -1309,6 +1329,10 @@
     document.getElementById("a-land-type-wrap").hidden = category !== "land";
     document.getElementById("a-institution-wrap").hidden = !(category === "cash" || category === "securities");
     document.getElementById("a-beneficiary-wrap").hidden = category !== "insurance";
+    var isRights = category === "insurance_rights";
+    document.getElementById("a-premium-payer-wrap").hidden = !isRights;
+    document.getElementById("a-contractor-wrap").hidden = !isRights;
+    document.getElementById("a-insured-wrap").hidden = !isRights;
     document.getElementById("a-funeral-type-wrap").hidden = category !== "funeral";
     var funeralType = document.getElementById("a-funeral-type").value;
     document.getElementById("a-shichiya-wrap").hidden = !(category === "funeral" && funeralType === "お布施");
@@ -1333,6 +1357,9 @@
     document.getElementById("a-land-type").value = a ? (a.landType || "") : "";
     document.getElementById("a-institution").value = a ? (a.institution || "") : "";
     document.getElementById("a-beneficiary").value = a ? (a.beneficiary || "") : "";
+    document.getElementById("a-premium-payer").value = a ? (a.premiumPayer || "") : "";
+    document.getElementById("a-contractor").value = a ? (a.contractor || "") : "";
+    document.getElementById("a-insured").value = a ? (a.insured || "") : "";
     document.getElementById("a-funeral-type").value = a ? (a.funeralType || "") : "";
     document.getElementById("a-shichiya").value = a ? (a.shichiya || "unknown") : "unknown";
     updateAssetExtraFieldsVisibility();
@@ -1350,6 +1377,9 @@
       landType: document.getElementById("a-land-type").value,
       institution: document.getElementById("a-institution").value.trim(),
       beneficiary: document.getElementById("a-beneficiary").value.trim(),
+      premiumPayer: document.getElementById("a-premium-payer").value.trim(),
+      contractor: document.getElementById("a-contractor").value.trim(),
+      insured: document.getElementById("a-insured").value.trim(),
       funeralType: document.getElementById("a-funeral-type").value,
       shichiya: document.getElementById("a-shichiya").value,
       note: document.getElementById("a-note").value.trim()
@@ -1461,6 +1491,12 @@
     html += "<div><span class='k'>純資産額（概算）</span><strong>" + formatYen(net) + "</strong></div>";
     html += "<div><span class='k'>基礎控除額（目安）</span>" + formatYen(deductionAmount) + "</div>";
     html += "</div>";
+    var ins = computeInsuranceExemption(c);
+    html += "<div class='kv-grid' style='margin-top:8px;'>";
+    html += "<div><span class='k'>生命保険金等合計</span>" + formatYen(ins.total) + "</div>";
+    html += "<div><span class='k'>非課税限度額（500万円×法定相続人数・目安）</span>" + formatYen(ins.exemption) + "</div>";
+    html += "<div><span class='k'>差引 課税対象額（目安）</span><strong>" + formatYen(ins.taxable) + "</strong></div>";
+    html += "</div>";
 
     html += "<h2>ヒアリング項目</h2><table><thead><tr><th>項目</th><th>回答</th><th>メモ</th></tr></thead><tbody>";
     HEARING_ITEMS.forEach(function (h) {
@@ -1506,13 +1542,15 @@
   }
   function exportAssetsXLS() {
     var c = getCase(); if (!c) return;
-    var rows = [["分類", "内容", "土地区分", "金融機関・証券会社名", "受取人", "費用種別", "初七日費用", "数量等", "概算評価額（円）", "備考"]];
+    var rows = [["分類", "内容", "土地区分", "金融機関・証券会社名", "受取人", "保険料負担者", "契約者", "被保険者", "費用種別", "初七日費用", "数量等", "概算評価額（円）", "備考"]];
     var shichiyaMap = {}; SHICHIYA_OPTIONS.forEach(function (o) { shichiyaMap[o.value] = o.label; });
+    var COL = 11; // 概算評価額（円）列のインデックス（0始まり）
     ASSET_CATEGORIES.forEach(function (cat) {
       c.assets.filter(function (a) { return a.category === cat.key; }).forEach(function (a) {
         rows.push([
           cat.label, a.description || "",
           a.landType || "", a.institution || "", a.beneficiary || "",
+          a.premiumPayer || "", a.contractor || "", a.insured || "",
           a.funeralType || "", (a.funeralType === "お布施" ? (shichiyaMap[a.shichiya] || "") : ""),
           a.quantity || "", Number(a.value) || 0, a.note || ""
         ]);
@@ -1520,10 +1558,20 @@
     });
     var plus = 0, minus = 0;
     c.assets.forEach(function (a) { var cat = ASSET_CAT_MAP[a.category]; var v = Number(a.value) || 0; if (cat && cat.sign > 0) plus += v; else minus += v; });
-    rows.push(["", "", "", "", "", "", "", "", "", ""]);
-    rows.push(["積極財産合計", "", "", "", "", "", "", "", plus, ""]);
-    rows.push(["債務・葬式費用合計", "", "", "", "", "", "", "", minus, ""]);
-    rows.push(["純資産額（概算）", "", "", "", "", "", "", "", plus - minus, ""]);
+    function totalRow(label, amount) {
+      var row = new Array(13).fill("");
+      row[0] = label; row[COL] = amount;
+      return row;
+    }
+    rows.push(new Array(13).fill(""));
+    rows.push(totalRow("積極財産合計", plus));
+    rows.push(totalRow("債務・葬式費用合計", minus));
+    rows.push(totalRow("純資産額（概算）", plus - minus));
+    var ins = computeInsuranceExemption(c);
+    rows.push(new Array(13).fill(""));
+    rows.push(totalRow("生命保険金等合計", ins.total));
+    rows.push(totalRow("生命保険金の非課税限度額（500万円×法定相続人数・目安）", ins.exemption));
+    rows.push(totalRow("差引 生命保険金 課税対象額（目安）", ins.taxable));
     var xml = buildXlsXml([{ name: "財産目録", rows: rows }]);
     var blob = new Blob([xml], { type: "application/vnd.ms-excel" });
     downloadBlob(blob, (c.title || c.decedent.name || "財産目録") + "_財産目録_" + todayStamp() + ".xls");

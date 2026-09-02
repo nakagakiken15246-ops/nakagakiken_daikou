@@ -1514,34 +1514,188 @@
     document.getElementById("print-area").innerHTML = html;
   }
 
-  /* ---------- Excel(.xls / SpreadsheetML) 出力 ---------- */
+  /* ---------- Excel(.xlsx) 出力 ----------
+     外部ライブラリを使わず、ZIP(格納のみ・無圧縮)を直接組み立てて
+     正規のOffice Open XML(.xlsx)を生成する。
+     （旧SpreadsheetML(.xls名)は拡張子と中身の不一致でExcelに警告が
+     出るため、拡張子どおりの本物の.xlsxに置き換えた。） */
   function xmlEscape(s) {
     return (s == null ? "" : String(s)).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c];
     });
   }
-  function xlsCell(v) {
-    if (typeof v === "number") return "<Cell><Data ss:Type=\"Number\">" + v + "</Data></Cell>";
-    return "<Cell><Data ss:Type=\"String\">" + xmlEscape(v) + "</Data></Cell>";
+  function colLetter(idx0) {
+    var n = idx0 + 1, s = "";
+    while (n > 0) {
+      var rem = (n - 1) % 26;
+      s = String.fromCharCode(65 + rem) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
   }
-  function buildXlsXml(sheets) {
-    // 文字コード未指定のままだとExcelが日本語を正しく認識できず文字化けするため、
-    // XML宣言でUTF-8を明示し、さらにBOMを付与して確実にUTF-8として読み込ませる。
-    var xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<?mso-application progid="Excel.Sheet"?>\n';
-    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n';
-    xml += '<Styles><Style ss:ID="hdr"><Font ss:Bold="1"/><Interior ss:Color="#DCE6F1" ss:Pattern="Solid"/></Style></Styles>\n';
-    sheets.forEach(function (sheet) {
-      xml += '<Worksheet ss:Name="' + xmlEscape(sheet.name) + '"><Table>\n';
-      sheet.rows.forEach(function (row, idx) {
-        xml += "<Row>";
-        row.forEach(function (cellVal) { xml += xlsCell(cellVal); });
-        xml += "</Row>\n";
+  function safeSheetName(name) {
+    var s = String(name || "Sheet1").replace(/[:\\\/\?\*\[\]]/g, "");
+    return s.slice(0, 31) || "Sheet1";
+  }
+  function buildSheetXml(rows) {
+    var xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+    xml += '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>\n';
+    rows.forEach(function (row, rIdx) {
+      xml += '<row r="' + (rIdx + 1) + '">';
+      row.forEach(function (val, cIdx) {
+        var ref = colLetter(cIdx) + (rIdx + 1);
+        if (typeof val === "number" && isFinite(val)) {
+          xml += '<c r="' + ref + '"><v>' + val + '</v></c>';
+        } else {
+          var s = val == null ? "" : String(val);
+          xml += '<c r="' + ref + '" t="inlineStr"><is><t xml:space="preserve">' + xmlEscape(s) + '</t></is></c>';
+        }
       });
-      xml += "</Table></Worksheet>\n";
+      xml += '</row>\n';
     });
-    xml += "</Workbook>";
-    return "﻿" + xml; // UTF-8 BOM（Excelが文字コードをUTF-8と正しく判定するために必要）
+    xml += '</sheetData></worksheet>';
+    return xml;
+  }
+
+  // --- ZIP (格納/無圧縮) を素のバイト列から組み立てる ---
+  var CRC32_TABLE = null;
+  function crc32(bytes) {
+    if (!CRC32_TABLE) {
+      CRC32_TABLE = [];
+      for (var n = 0; n < 256; n++) {
+        var c = n;
+        for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        CRC32_TABLE[n] = c >>> 0;
+      }
+    }
+    var crc = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i++) crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ bytes[i]) & 0xFF];
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+  function buildZip(files) {
+    var encoder = new TextEncoder();
+    var localParts = [], centralParts = [], offset = 0;
+    files.forEach(function (f) {
+      var nameBytes = encoder.encode(f.name);
+      var data = f.data;
+      var crc = crc32(data);
+
+      var lh = new Uint8Array(30 + nameBytes.length);
+      var ldv = new DataView(lh.buffer);
+      ldv.setUint32(0, 0x04034b50, true);
+      ldv.setUint16(4, 20, true);
+      ldv.setUint16(6, 0, true);
+      ldv.setUint16(8, 0, true); // 圧縮方式=格納(無圧縮)
+      ldv.setUint16(10, 0, true);
+      ldv.setUint16(12, 0x21, true);
+      ldv.setUint32(14, crc, true);
+      ldv.setUint32(18, data.length, true);
+      ldv.setUint32(22, data.length, true);
+      ldv.setUint16(26, nameBytes.length, true);
+      ldv.setUint16(28, 0, true);
+      lh.set(nameBytes, 30);
+      localParts.push(lh, data);
+
+      var ch = new Uint8Array(46 + nameBytes.length);
+      var cdv = new DataView(ch.buffer);
+      cdv.setUint32(0, 0x02014b50, true);
+      cdv.setUint16(4, 20, true);
+      cdv.setUint16(6, 20, true);
+      cdv.setUint16(8, 0, true);
+      cdv.setUint16(10, 0, true);
+      cdv.setUint16(12, 0, true);
+      cdv.setUint16(14, 0x21, true);
+      cdv.setUint32(16, crc, true);
+      cdv.setUint32(20, data.length, true);
+      cdv.setUint32(24, data.length, true);
+      cdv.setUint16(28, nameBytes.length, true);
+      cdv.setUint16(30, 0, true);
+      cdv.setUint16(32, 0, true);
+      cdv.setUint16(34, 0, true);
+      cdv.setUint16(36, 0, true);
+      cdv.setUint32(38, 0, true);
+      cdv.setUint32(42, offset, true);
+      ch.set(nameBytes, 46);
+      centralParts.push(ch);
+
+      offset += lh.length + data.length;
+    });
+
+    var centralStart = offset;
+    var centralSize = centralParts.reduce(function (s, p) { return s + p.length; }, 0);
+    var eocd = new Uint8Array(22);
+    var edv = new DataView(eocd.buffer);
+    edv.setUint32(0, 0x06054b50, true);
+    edv.setUint16(4, 0, true);
+    edv.setUint16(6, 0, true);
+    edv.setUint16(8, files.length, true);
+    edv.setUint16(10, files.length, true);
+    edv.setUint32(12, centralSize, true);
+    edv.setUint32(16, centralStart, true);
+    edv.setUint16(20, 0, true);
+
+    var allParts = localParts.concat(centralParts, [eocd]);
+    var totalLen = allParts.reduce(function (s, p) { return s + p.length; }, 0);
+    var result = new Uint8Array(totalLen);
+    var pos = 0;
+    allParts.forEach(function (p) { result.set(p, pos); pos += p.length; });
+    return result;
+  }
+
+  function buildXlsxBlob(sheets) {
+    var encoder = new TextEncoder();
+    function toBytes(str) { return encoder.encode(str); }
+
+    var contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+      sheets.map(function (s, i) { return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join("") +
+      '</Types>';
+
+    var rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+      '</Relationships>';
+
+    var stylesRelId = "rId" + (sheets.length + 1);
+    var workbookRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      sheets.map(function (s, i) { return '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>'; }).join("") +
+      '<Relationship Id="' + stylesRelId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+      '</Relationships>';
+
+    var workbookXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+      '<sheets>' +
+      sheets.map(function (s, i) { return '<sheet name="' + xmlEscape(safeSheetName(s.name)) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>'; }).join("") +
+      '</sheets></workbook>';
+
+    var stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>' +
+      '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>' +
+      '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+      '</styleSheet>';
+
+    var files = [
+      { name: "[Content_Types].xml", data: toBytes(contentTypes) },
+      { name: "_rels/.rels", data: toBytes(rootRels) },
+      { name: "xl/workbook.xml", data: toBytes(workbookXml) },
+      { name: "xl/_rels/workbook.xml.rels", data: toBytes(workbookRels) },
+      { name: "xl/styles.xml", data: toBytes(stylesXml) }
+    ];
+    sheets.forEach(function (s, i) {
+      files.push({ name: "xl/worksheets/sheet" + (i + 1) + ".xml", data: toBytes(buildSheetXml(s.rows)) });
+    });
+
+    var zipBytes = buildZip(files);
+    return new Blob([zipBytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   }
   function exportAssetsXLS() {
     var c = getCase(); if (!c) return;
@@ -1575,9 +1729,8 @@
     rows.push(totalRow("生命保険金等合計", ins.total));
     rows.push(totalRow("生命保険金の非課税限度額（500万円×法定相続人数・目安）", ins.exemption));
     rows.push(totalRow("差引 生命保険金 課税対象額（目安）", ins.taxable));
-    var xml = buildXlsXml([{ name: "財産目録", rows: rows }]);
-    var blob = new Blob([xml], { type: "application/vnd.ms-excel" });
-    downloadBlob(blob, (c.title || c.decedent.name || "財産目録") + "_財産目録_" + todayStamp() + ".xls");
+    var blob = buildXlsxBlob([{ name: "財産目録", rows: rows }]);
+    downloadBlob(blob, (c.title || c.decedent.name || "財産目録") + "_財産目録_" + todayStamp() + ".xlsx");
   }
   function exportHeirsXLS() {
     var c = getCase(); if (!c) return;
@@ -1594,9 +1747,8 @@
     rows.push(["", "", "", "", "", ""]);
     rows.push(["法定相続人の数（基礎控除用・目安）", deductionCount, "", "", "", ""]);
     rows.push(["遺産に係る基礎控除額（目安）", 30000000 + 6000000 * deductionCount, "", "", "", ""]);
-    var xml = buildXlsXml([{ name: "相続人一覧", rows: rows }]);
-    var blob = new Blob([xml], { type: "application/vnd.ms-excel" });
-    downloadBlob(blob, (c.title || c.decedent.name || "相続人一覧") + "_相続人一覧_" + todayStamp() + ".xls");
+    var blob = buildXlsxBlob([{ name: "相続人一覧", rows: rows }]);
+    downloadBlob(blob, (c.title || c.decedent.name || "相続人一覧") + "_相続人一覧_" + todayStamp() + ".xlsx");
   }
 
   /* ---------- 必要資料チェックリスト（全項目）の出力 ---------- */
@@ -1653,9 +1805,8 @@
         rows.push([label, exLabel, item.name || "", item.status, item.custody ? "○" : "", item.returned ? "○" : "", item.memo || ""]);
       });
     });
-    var xml = buildXlsXml([{ name: "必要資料チェックリスト", rows: rows }]);
-    var blob = new Blob([xml], { type: "application/vnd.ms-excel" });
-    downloadBlob(blob, (c.title || c.decedent.name || "必要資料") + "_必要資料チェックリスト_" + todayStamp() + ".xls");
+    var blob = buildXlsxBlob([{ name: "必要資料チェックリスト", rows: rows }]);
+    downloadBlob(blob, (c.title || c.decedent.name || "必要資料") + "_必要資料チェックリスト_" + todayStamp() + ".xlsx");
   }
 
   /* ===========================================================

@@ -513,6 +513,7 @@
     });
     if (tab === "tree") { renderTree(); }
     if (tab === "summary") { renderPrintArea(); }
+    if (tab === "assets") { var c = getCase(); if (c) updateAssetTotals(c); }
   }
 
   /* ===========================================================

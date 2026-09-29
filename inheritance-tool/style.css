@@ -112,6 +112,14 @@ label{
 }
 label.full-width{grid-column:1/-1;margin-top:12px;}
 
+.zip-row{display:flex;align-items:center;gap:8px;}
+.zip-row input{flex:1;min-width:0;}
+.zip-row .btn-small{flex:none;white-space:nowrap;}
+
+.staff-list{display:flex;flex-direction:column;gap:8px;margin:12px 0;max-height:50vh;overflow-y:auto;}
+.staff-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 12px;}
+.staff-row-name{font-size:14px;color:var(--text);}
+
 .wareki-field{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;margin-top:2px;}
 .wareki-label{font-size:13px;color:var(--muted);}
 .wareki-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}

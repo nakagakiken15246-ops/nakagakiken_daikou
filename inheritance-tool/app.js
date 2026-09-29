@@ -7,6 +7,8 @@
   "use strict";
 
   var STORAGE_KEY = "inheritanceInterviewTool.v1.cases";
+  var STAFF_STORAGE_KEY = "inheritanceInterviewTool.v1.staff";
+  var POSTAL_DATA_URL = "data/postal-codes.json";
 
   /* ---------------------------------------------------------
      マスタデータ
@@ -135,11 +137,7 @@
       { name: "解約返戻金のある損害保険（建更等）", hint: "解約返戻金相当額計算書・解約通知書" },
       { name: "施設等入居関連書類", hint: "入居契約書・重要事項説明書・介護保険証か介護認定通知書コピー" },
       { name: "施設退去時の精算計算書", hint: "敷金精算がある場合" },
-      { name: "ゴルフ会員権", hint: "会員券や保証金の証書" },
-      { name: "骨董品", hint: "購入時期・購入金額が分かる資料。なければ聴取。鑑定要否は要相談" },
-      { name: "カーポート", hint: "購入時期・購入金額が分かる資料。型番等分かれば現況写真の際に確認" },
-      { name: "ソーラーパネル", hint: "購入時期・購入金額が分かる契約書等。要相談" },
-      { name: "庭園", hint: "購入時期・購入金額・購入場所が分かる資料" }
+      { name: "ゴルフ会員権・骨董品・カーポート・ソーラーパネル・庭園等", hint: "ゴルフ会員権は会員券や保証金の証書／その他は購入時期・購入金額（・購入場所）が分かる資料。なければ聴取。骨董品は鑑定要否を要相談" }
     ] },
     { key: "debts", label: "債務", hasExistence: false, items: [
       { name: "葬儀費用が分かる資料", hint: "領収書、または請求書や精算書等" },
@@ -181,7 +179,8 @@
     { key: "debt", label: "債務（借入金等）", sign: -1 },
     { key: "funeral", label: "葬式費用", sign: -1 }
   ];
-  var LAND_TYPE_OPTIONS = ["自用地", "貸地", "貸家建付地", "使用貸借"];
+  var LAND_TYPE_OPTIONS = ["自用地", "貸地", "貸家建付地", "使用貸借", "月極駐車場"];
+  var BUILDING_TYPE_OPTIONS = ["自用家屋", "貸家", "使用貸借"];
   var FUNERAL_TYPE_OPTIONS = ["葬儀費用", "お布施", "その他"];
   var SHICHIYA_OPTIONS = [
     { value: "unknown", label: "未確認" },
@@ -354,10 +353,10 @@
       updatedAt: now,
       title: "",
       staff: "",
-      contact: { name: "", kana: "", address: "", phone: "", contactTime: "", relation: "", livingTogether: "unknown" },
+      contact: { name: "", kana: "", zip: "", address: "", phone: "", contactTime: "", relation: "", livingTogether: "unknown" },
       referral: { type: "", dmConsent: "", details: {} },
       consultationTypes: [],
-      decedent: { name: "", kana: "", birth: "", death: "", address: "", honseki: "", job: "", note: "" },
+      decedent: { name: "", kana: "", birth: "", death: "", zip: "", address: "", honseki: "", job: "", note: "" },
       interview: {
         date: "", place: "", attendeeStaff: "", attendeeFamily: "",
         hearing: hearing,
@@ -631,15 +630,54 @@
   /* ===========================================================
      作業画面：描画
   =========================================================== */
+  // ゴルフ会員権・骨董品・カーポート・ソーラーパネル・庭園の5項目を1項目に統合した際、
+  // 旧データ（個別5項目）が残っている案件は、入力済みの状況を失わずに新項目へ統合する
+  var LEGACY_OTHERASSETS_NAMES = ["ゴルフ会員権", "骨董品", "カーポート", "ソーラーパネル", "庭園"];
+  var COMBINED_OTHERASSETS_NAME = "ゴルフ会員権・骨董品・カーポート・ソーラーパネル・庭園等";
+  var DOC_STATUS_PRIORITY = { "取得済": 3, "依頼済": 2, "対象外": 1, "未依頼": 0 };
+  function migrateOtherAssetsDocItems(docChecklist) {
+    var cat = docChecklist.filter(function (x) { return x.key === "otherassets"; })[0];
+    if (!cat) return;
+    var legacyItems = cat.items.filter(function (x) { return LEGACY_OTHERASSETS_NAMES.indexOf(x.name) >= 0; });
+    if (legacyItems.length === 0) return;
+    var combined = cat.items.filter(function (x) { return x.name === COMBINED_OTHERASSETS_NAME; })[0];
+    if (!combined) {
+      var catDef = DOC_CATEGORY_MAP["otherassets"];
+      var combinedDef = catDef ? catDef.items.filter(function (it) { return (typeof it === "string" ? it : it.name) === COMBINED_OTHERASSETS_NAME; })[0] : null;
+      var combinedHint = combinedDef && typeof combinedDef === "object" ? (combinedDef.hint || "") : "";
+      combined = { id: uid(), name: COMBINED_OTHERASSETS_NAME, hint: combinedHint, status: "未依頼", custody: false, returned: false, memo: "" };
+      cat.items.push(combined);
+    }
+    var bestStatus = combined.status || "未依頼";
+    var custody = !!combined.custody, returned = !!combined.returned;
+    var memoParts = combined.memo ? [combined.memo] : [];
+    legacyItems.forEach(function (item) {
+      if ((DOC_STATUS_PRIORITY[item.status] || 0) > (DOC_STATUS_PRIORITY[bestStatus] || 0)) bestStatus = item.status;
+      if (item.custody) custody = true;
+      if (item.returned) returned = true;
+      if (item.memo) memoParts.push(item.name + "：" + item.memo);
+    });
+    combined.status = bestStatus;
+    combined.custody = custody;
+    combined.returned = returned;
+    combined.memo = memoParts.join("／");
+    cat.items = cat.items.filter(function (x) { return LEGACY_OTHERASSETS_NAMES.indexOf(x.name) < 0; });
+    return true;
+  }
+
   // 旧バージョンで作成された案件データに新項目を補完する
   function ensureCaseDefaults(c) {
-    if (!c.contact) c.contact = { name: "", kana: "", address: "", phone: "", contactTime: "", relation: "", livingTogether: "unknown" };
+    if (!c.contact) c.contact = { name: "", kana: "", zip: "", address: "", phone: "", contactTime: "", relation: "", livingTogether: "unknown" };
+    if (c.contact.zip === undefined) c.contact.zip = "";
+    if (!c.decedent) c.decedent = { name: "", kana: "", birth: "", death: "", zip: "", address: "", honseki: "", job: "", note: "" };
+    if (c.decedent.zip === undefined) c.decedent.zip = "";
     if (!c.referral) c.referral = { type: "", dmConsent: "", details: {} };
     if (!c.referral.details) c.referral.details = {};
     if (!c.consultationTypes) c.consultationTypes = [];
     if (!c.docChecklist) {
       c.docChecklist = buildDefaultDocChecklist();
     } else {
+      if (migrateOtherAssetsDocItems(c.docChecklist)) saveCases(state.cases);
       // カテゴリ・項目マスタが更新された場合に備え、既存データを保ちつつ不足分のみ補完する
       DOC_CATEGORIES.forEach(function (catDef) {
         var cat = c.docChecklist.filter(function (x) { return x.key === catDef.key; })[0];
@@ -685,6 +723,7 @@
 
     bindField("c-name", function () { return c.contact.name; }, function (v) { c.contact.name = v; });
     bindField("c-kana", function () { return c.contact.kana; }, function (v) { c.contact.kana = v; });
+    bindField("c-zip", function () { return c.contact.zip; }, function (v) { c.contact.zip = v; });
     bindField("c-address", function () { return c.contact.address; }, function (v) { c.contact.address = v; });
     bindField("c-phone", function () { return c.contact.phone; }, function (v) { c.contact.phone = v; });
     bindField("c-contact-time", function () { return c.contact.contactTime; }, function (v) { c.contact.contactTime = v; });
@@ -697,6 +736,7 @@
     bindField("d-kana", function () { return c.decedent.kana; }, function (v) { c.decedent.kana = v; });
     wireWarekiField("d-birth", function () { return c.decedent.birth; }, function (v) { c.decedent.birth = v; touch(c); persistDebounced(); });
     bindField("d-death", function () { return c.decedent.death; }, function (v) { c.decedent.death = v; updateDeadlineBox(c); });
+    bindField("d-zip", function () { return c.decedent.zip; }, function (v) { c.decedent.zip = v; });
     bindField("d-address", function () { return c.decedent.address; }, function (v) { c.decedent.address = v; });
     bindField("d-honseki", function () { return c.decedent.honseki; }, function (v) { c.decedent.honseki = v; });
     bindField("d-job", function () { return c.decedent.job; }, function (v) { c.decedent.job = v; });
@@ -760,12 +800,107 @@
     document.getElementById("deadline-date").textContent = d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日";
   }
 
+  /* ---------- 郵便番号 → 住所検索 ----------
+     data/postal-codes.json （このアプリと同じ場所に同梱した静的ファイル）を
+     初回検索時にのみ読み込みます。外部サーバーへは一切通信しません。 */
+  var postalData = null;
+  var postalDataLoading = null;
+  function loadPostalData() {
+    if (postalData) return Promise.resolve(postalData);
+    if (postalDataLoading) return postalDataLoading;
+    postalDataLoading = fetch(POSTAL_DATA_URL).then(function (res) {
+      if (!res.ok) throw new Error("postal data fetch failed");
+      return res.json();
+    }).then(function (data) {
+      postalData = data;
+      return data;
+    });
+    return postalDataLoading;
+  }
+  function fillAddressFromZip(zipInputId, addressInputId, onFilled) {
+    var zipInput = document.getElementById(zipInputId);
+    var addressInput = document.getElementById(addressInputId);
+    var zip = (zipInput.value || "").replace(/[^0-9]/g, "");
+    if (zip.length !== 7) { alert("郵便番号は数字7桁で入力してください（例：1234567）。"); return; }
+    loadPostalData().then(function (data) {
+      var addr = data[zip];
+      if (!addr) { alert("該当する住所が見つかりませんでした。郵便番号をご確認ください。"); return; }
+      addressInput.value = addr;
+      if (onFilled) onFilled(addr);
+      addressInput.dispatchEvent(new Event("input"));
+    }).catch(function () {
+      alert("住所データの読み込みに失敗しました。");
+    });
+  }
+
+  /* ---------- 職員登録（対応者プルダウン用・案件をまたいで共通） ---------- */
+  function loadStaffList() {
+    try {
+      var raw = localStorage.getItem(STAFF_STORAGE_KEY);
+      var list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+  }
+  function saveStaffList(list) {
+    localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(list));
+  }
+  function renderStaffModal() {
+    var wrap = document.getElementById("staff-list");
+    wrap.innerHTML = "";
+    var list = loadStaffList();
+    if (list.length === 0) {
+      wrap.appendChild(el("div", { class: "empty-msg", text: "登録されている職員はいません。" }));
+    }
+    list.forEach(function (name, idx) {
+      wrap.appendChild(el("div", { class: "staff-row" }, [
+        el("span", { class: "staff-row-name", text: name }),
+        el("button", { class: "btn btn-danger btn-small", text: "削除", onclick: function () {
+          list.splice(idx, 1);
+          saveStaffList(list);
+          renderStaffModal();
+        } })
+      ]));
+    });
+  }
+  function openStaffModal() {
+    document.getElementById("staff-new-name").value = "";
+    renderStaffModal();
+    document.getElementById("modal-staff").hidden = false;
+  }
+  function closeStaffModal() {
+    document.getElementById("modal-staff").hidden = true;
+    refreshAttendeeStaffSelect();
+  }
+  function addStaffFromModal() {
+    var input = document.getElementById("staff-new-name");
+    var name = input.value.trim();
+    if (!name) return;
+    var list = loadStaffList();
+    if (list.indexOf(name) < 0) { list.push(name); saveStaffList(list); }
+    input.value = "";
+    renderStaffModal();
+  }
+  function refreshAttendeeStaffSelect() {
+    var c = getCase(); if (!c) return;
+    var sel = document.getElementById("i-attendee-staff");
+    var current = c.interview.attendeeStaff || "";
+    sel.innerHTML = "";
+    sel.appendChild(el("option", { value: "", text: "未選択" }));
+    var list = loadStaffList();
+    list.forEach(function (name) { sel.appendChild(el("option", { value: name, text: name })); });
+    if (current && list.indexOf(current) < 0) {
+      sel.appendChild(el("option", { value: current, text: current + "（登録なし）" }));
+    }
+    sel.value = current;
+  }
+
   /* ---------- 面談記録 ---------- */
   function renderInterviewTab(c) {
     var iv = c.interview;
     bindField("i-date", function () { return iv.date; }, function (v) { iv.date = v; });
     bindField("i-place", function () { return iv.place; }, function (v) { iv.place = v; });
-    bindField("i-attendee-staff", function () { return iv.attendeeStaff; }, function (v) { iv.attendeeStaff = v; });
+    refreshAttendeeStaffSelect();
+    document.getElementById("i-attendee-staff").onchange = function (e) { iv.attendeeStaff = e.target.value; touch(c); persistDebounced(); };
     bindField("i-attendee-family", function () { return iv.attendeeFamily; }, function (v) { iv.attendeeFamily = v; });
     bindField("i-memo", function () { return iv.memo; }, function (v) { iv.memo = v; });
     bindField("i-next-date", function () { return iv.nextDate; }, function (v) { iv.nextDate = v; });
@@ -1294,6 +1429,7 @@
   function assetDetailSuffix(a) {
     var parts = [];
     if (a.category === "land" && a.landType) parts.push(a.landType);
+    if (a.category === "building" && a.buildingType) parts.push(a.buildingType);
     if ((a.category === "cash" || a.category === "securities") && a.institution) parts.push(a.institution);
     if (a.category === "insurance" && a.beneficiary) parts.push("受取人：" + a.beneficiary);
     if (a.category === "insurance_rights") {
@@ -1316,6 +1452,10 @@
     if (landSel.options.length <= 1) {
       LAND_TYPE_OPTIONS.forEach(function (t) { landSel.appendChild(el("option", { value: t, text: t })); });
     }
+    var buildingSel = document.getElementById("a-building-type");
+    if (buildingSel.options.length <= 1) {
+      BUILDING_TYPE_OPTIONS.forEach(function (t) { buildingSel.appendChild(el("option", { value: t, text: t })); });
+    }
     var funeralSel = document.getElementById("a-funeral-type");
     if (funeralSel.options.length <= 1) {
       FUNERAL_TYPE_OPTIONS.forEach(function (t) { funeralSel.appendChild(el("option", { value: t, text: t })); });
@@ -1328,8 +1468,12 @@
   function updateAssetExtraFieldsVisibility() {
     var category = document.getElementById("a-category").value;
     document.getElementById("a-land-type-wrap").hidden = category !== "land";
+    document.getElementById("a-description-label").textContent = category === "land" ? "所在地" : "種類・銘柄・所在地等";
+    document.getElementById("a-building-type-wrap").hidden = category !== "building";
     document.getElementById("a-institution-wrap").hidden = !(category === "cash" || category === "securities");
     document.getElementById("a-beneficiary-wrap").hidden = category !== "insurance";
+    var beneficiarySel = document.getElementById("a-beneficiary");
+    document.getElementById("a-beneficiary-other-wrap").hidden = !(category === "insurance" && beneficiarySel.value === "__other__");
     var isRights = category === "insurance_rights";
     document.getElementById("a-premium-payer-wrap").hidden = !isRights;
     document.getElementById("a-contractor-wrap").hidden = !isRights;
@@ -1356,8 +1500,23 @@
     document.getElementById("a-value").value = a ? a.value : "";
     document.getElementById("a-note").value = a ? a.note || "" : "";
     document.getElementById("a-land-type").value = a ? (a.landType || "") : "";
+    document.getElementById("a-building-type").value = a ? (a.buildingType || "") : "";
     document.getElementById("a-institution").value = a ? (a.institution || "") : "";
-    document.getElementById("a-beneficiary").value = a ? (a.beneficiary || "") : "";
+
+    var beneficiarySel = document.getElementById("a-beneficiary");
+    beneficiarySel.innerHTML = "";
+    beneficiarySel.appendChild(el("option", { value: "", text: "未選択" }));
+    c.people.forEach(function (p) {
+      if (!p.name) return;
+      var def = REL_MAP[p.relationship];
+      beneficiarySel.appendChild(el("option", { value: p.name, text: p.name + (def ? "（" + def.label + "）" : "") }));
+    });
+    beneficiarySel.appendChild(el("option", { value: "__other__", text: "その他（自由入力）" }));
+    var beneficiaryVal = a ? (a.beneficiary || "") : "";
+    var beneficiaryIsPerson = beneficiaryVal && c.people.some(function (p) { return p.name === beneficiaryVal; });
+    beneficiarySel.value = beneficiaryVal ? (beneficiaryIsPerson ? beneficiaryVal : "__other__") : "";
+    document.getElementById("a-beneficiary-other").value = (beneficiaryVal && !beneficiaryIsPerson) ? beneficiaryVal : "";
+
     document.getElementById("a-premium-payer").value = a ? (a.premiumPayer || "") : "";
     document.getElementById("a-contractor").value = a ? (a.contractor || "") : "";
     document.getElementById("a-insured").value = a ? (a.insured || "") : "";
@@ -1376,8 +1535,11 @@
       quantity: document.getElementById("a-quantity").value.trim(),
       value: Number(document.getElementById("a-value").value) || 0,
       landType: document.getElementById("a-land-type").value,
+      buildingType: document.getElementById("a-building-type").value,
       institution: document.getElementById("a-institution").value.trim(),
-      beneficiary: document.getElementById("a-beneficiary").value.trim(),
+      beneficiary: (document.getElementById("a-beneficiary").value === "__other__"
+        ? document.getElementById("a-beneficiary-other").value.trim()
+        : document.getElementById("a-beneficiary").value),
       premiumPayer: document.getElementById("a-premium-payer").value.trim(),
       contractor: document.getElementById("a-contractor").value.trim(),
       insured: document.getElementById("a-insured").value.trim(),
@@ -1699,14 +1861,14 @@
   }
   function exportAssetsXLS() {
     var c = getCase(); if (!c) return;
-    var rows = [["分類", "内容", "土地区分", "金融機関・証券会社名", "受取人", "保険料負担者", "契約者", "被保険者", "費用種別", "初七日費用", "数量等", "概算評価額（円）", "備考"]];
+    var rows = [["分類", "内容", "土地区分", "家屋区分", "金融機関・証券会社名", "受取人", "保険料負担者", "契約者", "被保険者", "費用種別", "初七日費用", "数量等", "概算評価額（円）", "備考"]];
     var shichiyaMap = {}; SHICHIYA_OPTIONS.forEach(function (o) { shichiyaMap[o.value] = o.label; });
-    var COL = 11; // 概算評価額（円）列のインデックス（0始まり）
+    var COL = 12; // 概算評価額（円）列のインデックス（0始まり）
     ASSET_CATEGORIES.forEach(function (cat) {
       c.assets.filter(function (a) { return a.category === cat.key; }).forEach(function (a) {
         rows.push([
           cat.label, a.description || "",
-          a.landType || "", a.institution || "", a.beneficiary || "",
+          a.landType || "", a.buildingType || "", a.institution || "", a.beneficiary || "",
           a.premiumPayer || "", a.contractor || "", a.insured || "",
           a.funeralType || "", (a.funeralType === "お布施" ? (shichiyaMap[a.shichiya] || "") : ""),
           a.quantity || "", Number(a.value) || 0, a.note || ""
@@ -1716,16 +1878,16 @@
     var plus = 0, minus = 0;
     c.assets.forEach(function (a) { var cat = ASSET_CAT_MAP[a.category]; var v = Number(a.value) || 0; if (cat && cat.sign > 0) plus += v; else minus += v; });
     function totalRow(label, amount) {
-      var row = new Array(13).fill("");
+      var row = new Array(14).fill("");
       row[0] = label; row[COL] = amount;
       return row;
     }
-    rows.push(new Array(13).fill(""));
+    rows.push(new Array(14).fill(""));
     rows.push(totalRow("積極財産合計", plus));
     rows.push(totalRow("債務・葬式費用合計", minus));
     rows.push(totalRow("純資産額（概算）", plus - minus));
     var ins = computeInsuranceExemption(c);
-    rows.push(new Array(13).fill(""));
+    rows.push(new Array(14).fill(""));
     rows.push(totalRow("生命保険金等合計", ins.total));
     rows.push(totalRow("生命保険金の非課税限度額（500万円×法定相続人数・目安）", ins.exemption));
     rows.push(totalRow("差引 生命保険金 課税対象額（目安）", ins.taxable));
@@ -1846,6 +2008,20 @@
     document.getElementById("btn-delete-asset").onclick = deleteAssetModal;
     document.getElementById("a-category").onchange = updateAssetExtraFieldsVisibility;
     document.getElementById("a-funeral-type").onchange = updateAssetExtraFieldsVisibility;
+    document.getElementById("a-beneficiary").onchange = updateAssetExtraFieldsVisibility;
+
+    document.getElementById("btn-zip-search-c").onclick = function () { fillAddressFromZip("c-zip", "c-address"); };
+    document.getElementById("btn-zip-search-d").onclick = function () { fillAddressFromZip("d-zip", "d-address"); };
+    document.getElementById("c-zip").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); fillAddressFromZip("c-zip", "c-address"); } });
+    document.getElementById("d-zip").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); fillAddressFromZip("d-zip", "d-address"); } });
+
+    document.getElementById("btn-manage-staff").onclick = openStaffModal;
+    document.getElementById("btn-close-staff").onclick = closeStaffModal;
+    document.getElementById("btn-add-staff").onclick = addStaffFromModal;
+    document.getElementById("staff-new-name").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); addStaffFromModal(); }
+    });
+    document.getElementById("modal-staff").addEventListener("click", function (e) { if (e.target === this) closeStaffModal(); });
 
     document.getElementById("btn-print").onclick = function () { renderPrintArea(); window.print(); };
     document.getElementById("btn-print-custody").onclick = printCustodyReceipt;

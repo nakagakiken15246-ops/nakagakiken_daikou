@@ -77,6 +77,7 @@
           <div class="form-grid">
             <label>氏名<input type="text" id="c-name"></label>
             <label>フリガナ<input type="text" id="c-kana"></label>
+            <label>郵便番号<span class="zip-row"><input type="text" id="c-zip" placeholder="1234567" inputmode="numeric" maxlength="8"><button type="button" id="btn-zip-search-c" class="btn btn-secondary btn-small">住所検索</button></span></label>
             <label>住所<input type="text" id="c-address" placeholder="〒"></label>
             <label>連絡先<input type="text" id="c-phone"></label>
             <label>連絡のつきやすい時間帯<input type="text" id="c-contact-time" placeholder="例）平日午前中"></label>
@@ -106,6 +107,7 @@
               <span class="wareki-iso" id="d-birth-iso-display"></span>
             </div>
             <label>死亡日(相続開始日)<input type="date" id="d-death"></label>
+            <label>郵便番号<span class="zip-row"><input type="text" id="d-zip" placeholder="1234567" inputmode="numeric" maxlength="8"><button type="button" id="btn-zip-search-d" class="btn btn-secondary btn-small">住所検索</button></span></label>
             <label>死亡時の住所<input type="text" id="d-address"></label>
             <label>本籍地<input type="text" id="d-honseki"></label>
             <label>職業・略歴<input type="text" id="d-job"></label>
@@ -141,7 +143,7 @@
           <div class="form-grid">
             <label>面談日<input type="date" id="i-date"></label>
             <label>面談場所<input type="text" id="i-place" placeholder="事務所／ご自宅／オンライン 等"></label>
-            <label>対応者(事務所側)<input type="text" id="i-attendee-staff"></label>
+            <label>対応者(事務所側)<span class="zip-row"><select id="i-attendee-staff"></select><button type="button" id="btn-manage-staff" class="btn btn-secondary btn-small">職員管理</button></span></label>
             <label>同席者(お客様側)<input type="text" id="i-attendee-family" placeholder="続柄も記載"></label>
           </div>
         </div>
@@ -305,13 +307,13 @@
 
       <div class="panel help-section" id="help-basic">
         <h2><span class="num">03</span>基本情報を入力する</h2>
-        <p>相談者様・対象者様の情報、相談の経緯・内容を記録します。死亡日を入力すると、<b>相続税申告期限（死亡日の翌日から10か月）が自動表示</b>されます。生前対策・贈与・遺言のご相談で対象者がまだご存命の場合は、死亡日は空欄のままで構いません。</p>
+        <p>相談者様・対象者様の情報、相談の経緯・内容を記録します。死亡日を入力すると、<b>相続税申告期限（死亡日の翌日から10か月）が自動表示</b>されます。生前対策・贈与・遺言のご相談で対象者がまだご存命の場合は、死亡日は空欄のままで構いません。郵便番号欄に7桁を入力し「住所検索」を押すと、住所欄に自動入力されます。</p>
         <figure class="help-shot"><img src="manual/basic.jpg" alt="基本情報タブの画面"><figcaption>基本情報タブ。相談者情報・対象者情報・相談経路が並びます。</figcaption></figure>
       </div>
 
       <div class="panel help-section" id="help-interview">
         <h2><span class="num">04</span>面談記録をつける</h2>
-        <p>遺言書の有無・生前贈与・事業承継など、ヒアリング項目ごとに状況とメモを記録します。面談メモ・特記事項には自由に記載し、次回打合せの予定もあわせて記録してください。</p>
+        <p>遺言書の有無・生前贈与・事業承継など、ヒアリング項目ごとに状況とメモを記録します。面談メモ・特記事項には自由に記載し、次回打合せの予定もあわせて記録してください。対応者(事務所側)は「職員管理」からあらかじめ職員名を登録しておくと、プルダウンから選択できます（全案件で共通の名簿です）。</p>
         <figure class="help-shot"><img src="manual/interview.jpg" alt="面談記録タブの画面"><figcaption>面談記録タブ。項目ごとに選択肢とメモが記録できます。</figcaption></figure>
       </div>
 
@@ -327,7 +329,7 @@
 
       <div class="panel help-section" id="help-assets">
         <h2><span class="num">06</span>財産目録を入力する</h2>
-        <p>土地・現金預貯金・有価証券・生命保険金・債務など分類ごとに <b>＋ 項目を追加</b> で入力すると、積極財産合計・純資産額（概算）・基礎控除額との比較が自動集計されます。</p>
+        <p>土地・現金預貯金・有価証券・生命保険金・債務など分類ごとに <b>＋ 項目を追加</b> で入力すると、積極財産合計・純資産額（概算）・基礎控除額との比較が自動集計されます。土地は利用区分（自用地・貸地・貸家建付地・使用貸借・月極駐車場）、家屋は利用区分（自用家屋・貸家・使用貸借）を選択できます。生命保険金の受取人は、先に「相関図・相続人」タブで登録しておくとプルダウンから選択できます（未登録の場合は自由入力も可）。</p>
         <figure class="help-shot"><img src="manual/assets.jpg" alt="財産目録タブの画面"><figcaption>財産目録タブ。分類ごとの自動集計と基礎控除比較が表示されます。</figcaption></figure>
       </div>
 
@@ -368,7 +370,8 @@
 
       <div class="panel help-section" id="help-security">
         <h2><span class="num">10</span>セキュリティについて</h2>
-        <p>このツールには外部通信の仕組みが一切なく、入力したデータがインターネット経由でどこかに送信されることはありません。サーバー自体が存在しないため、サーバー側からの情報漏えいも構造上起こりません。</p>
+        <p>入力したデータ（お客様情報・相関図・財産目録など）が外部・第三者のサーバーへ送信されることは一切ありません。サーバー自体が存在しないため、サーバー側からの情報漏えいも構造上起こりません。</p>
+        <p class="hint-text">※郵便番号から住所を検索する機能のみ、このツールに同梱した住所データファイルを読み込みます。これは第三者のサーバーではなく、このツール自体と同じ場所（同一オリジン）に置かれた静的ファイルであり、入力したお客様情報が外部に送信されるものではありません。</p>
         <ul>
           <li>iPadに<b>パスコード／Face IDを必ず設定</b></li>
           <li>専用端末を決め、不特定の人に共有しない</li>
@@ -380,7 +383,7 @@
       <div class="panel help-section" id="help-faq">
         <h2><span class="num">11</span>よくある質問</h2>
         <ul class="help-faq">
-          <li><p class="q">入力したデータは外部に漏れませんか？</p><p class="a">外部への通信は行っていないため、ネットワーク経由で漏れることは構造上ありません。端末自体の管理にご注意ください。</p></li>
+          <li><p class="q">入力したデータは外部に漏れませんか？</p><p class="a">入力したお客様情報が外部・第三者のサーバーへ送信されることはないため、ネットワーク経由で漏れることは構造上ありません（郵便番号検索のみ、同梱の住所データファイルを同一オリジンから読み込みます）。端末自体の管理にご注意ください。</p></li>
           <li><p class="q">別の職員のiPad・事務所PCでも同じ案件を見られますか？</p><p class="a">「JSON書き出し／読込」でファイルを受け渡すことで見られます。自動同期ではないため、編集は基本的に1端末に一本化することをおすすめします。</p></li>
           <li><p class="q">データが消えてしまいました。復元できますか？</p><p class="a">端末内のみの保存のため、Safariのデータ消去や端末の初期化を行うと復元できません。案件が一段落するたびにJSON書き出しでバックアップを取ってください。</p></li>
           <li><p class="q">預り証はどこから出力しますか？</p><p class="a">「必要資料」タブの右上、預り証を印刷／PDF保存からです。「原本預り」にチェックが入り、まだ「返却済」になっていない書類が対象になります。</p></li>
@@ -443,14 +446,18 @@
     <h3 id="asset-modal-title">財産・債務を追加</h3>
     <div class="form-grid">
       <label>分類<select id="a-category"></select></label>
-      <label>種類・銘柄・所在地等<input type="text" id="a-description"></label>
+      <label><span id="a-description-label">種類・銘柄・所在地等</span><input type="text" id="a-description"></label>
       <label>数量・面積等<input type="text" id="a-quantity"></label>
       <label>概算評価額（円）<input type="number" id="a-value" inputmode="numeric" step="1"></label>
       <label id="a-land-type-wrap" hidden>土地の利用区分
         <select id="a-land-type"><option value="">未選択</option></select>
       </label>
+      <label id="a-building-type-wrap" hidden>家屋の利用区分
+        <select id="a-building-type"><option value="">未選択</option></select>
+      </label>
       <label id="a-institution-wrap" hidden>金融機関・証券会社名<input type="text" id="a-institution" placeholder="例）〇〇銀行 〇〇支店"></label>
-      <label id="a-beneficiary-wrap" hidden>受取人<input type="text" id="a-beneficiary"></label>
+      <label id="a-beneficiary-wrap" hidden>受取人<select id="a-beneficiary"></select></label>
+      <label id="a-beneficiary-other-wrap" hidden>受取人（自由入力）<input type="text" id="a-beneficiary-other"></label>
       <label id="a-premium-payer-wrap" hidden>保険料負担者<input type="text" id="a-premium-payer"></label>
       <label id="a-contractor-wrap" hidden>契約者<input type="text" id="a-contractor"></label>
       <label id="a-insured-wrap" hidden>被保険者<input type="text" id="a-insured"></label>
@@ -465,6 +472,23 @@
       <div class="spacer"></div>
       <button id="btn-cancel-asset" class="btn btn-secondary">キャンセル</button>
       <button id="btn-save-asset" class="btn btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 職員管理 モーダル ===== -->
+<div id="modal-staff" class="modal" hidden>
+  <div class="modal-card">
+    <h3>職員管理</h3>
+    <p class="hint-text">面談記録の「対応者(事務所側)」欄プルダウンに表示する職員を登録します。全案件で共通です。</p>
+    <div class="zip-row">
+      <input type="text" id="staff-new-name" placeholder="職員氏名">
+      <button type="button" id="btn-add-staff" class="btn btn-primary btn-small">追加</button>
+    </div>
+    <div id="staff-list" class="staff-list"></div>
+    <div class="modal-actions">
+      <div class="spacer"></div>
+      <button id="btn-close-staff" class="btn btn-secondary">閉じる</button>
     </div>
   </div>
 </div>
